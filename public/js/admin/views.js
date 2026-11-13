@@ -9,6 +9,7 @@ import {
   formatDateTime,
 } from '../format.js';
 import {
+  announceCheckbox,
   componentPicker,
   formValues,
   impactSelect,
@@ -65,6 +66,7 @@ export function newIncidentForm(meta, onSubmit) {
       h('div', { class: 'field-row' }, impactSelect(meta.impacts), statusSelect(meta.statuses)),
       componentPicker(meta.groups),
       messageInput('What are players seeing? What are you doing about it?'),
+      announceCheckbox(meta.discord),
     ], 'Post incident', async (values, form) => {
       await onSubmit(values);
       form.reset();
@@ -116,6 +118,7 @@ function incidentCard(incident, meta, actions) {
   const updateForm = asyncForm('update-form', [
     h('div', { class: 'field-row' }, statusSelect(meta.statuses, nextStatus)),
     messageInput(incident.resolvedAt ? 'Reopening? Explain what happened.' : 'Latest progress…'),
+    announceCheckbox(meta.discord),
   ], 'Post update', (values) => actions.update(incident.id, values));
 
   const edit = h('details', { class: 'subsection' },

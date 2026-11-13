@@ -8,6 +8,14 @@ const actionsBar = byId('admin-actions');
 
 let meta = null; // from /api/admin/session
 const listContainer = h('div', { class: 'admin-lists' });
+const notice = h('p', { class: 'admin-notice', role: 'status' });
+
+// The incident is saved either way; only the Discord post can fail.
+function reportDiscord(result) {
+  notice.textContent = result?.discord === 'failed'
+    ? 'Saved, but the Discord announcement failed. Check the Vercel logs for details.'
+    : '';
+}
 
 async function refreshIncidents() {
   const incidents = await api.incidents();
@@ -16,7 +24,7 @@ async function refreshIncidents() {
 
 // Every change re-fetches the list, so what's shown is always what's stored.
 const incidentActions = {
-  update: (id, values) => api.postUpdate(id, values).then(refreshIncidents),
+  update: (id, values) => api.postUpdate(id, values).then(reportDiscord).then(refreshIncidents),
   edit: (id, values) => api.editIncident(id, values).then(refreshIncidents),
   remove: (id) => api.deleteIncident(id).then(refreshIncidents),
 };
@@ -30,7 +38,8 @@ function renderSignedIn(user) {
   actionsBar.prepend(h('span', { class: 'muted small' }, user.name), signOut);
 
   root.replaceChildren(
-    newIncidentForm(meta, (values) => api.createIncident(values).then(refreshIncidents)),
+    notice,
+    newIncidentForm(meta, (values) => api.createIncident(values).then(reportDiscord).then(refreshIncidents)),
     listContainer,
   );
 }

@@ -49,6 +49,18 @@
 .admin-lists, .admin-section { display: grid; gap: 14px; }
 .admin-section h2 { margin: 0; }
 
+/* Shown when an incident saved but its Discord post failed. */
+.admin-notice {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--degraded) 40%, var(--border));
+  background: color-mix(in srgb, var(--degraded) 10%, var(--surface));
+  color: var(--text);
+  font-size: 0.8125rem;
+}
+
+.admin-notice:empty { display: none; }
+
 /* ---------- forms ---------- */
 
 .incident-form, .update-form { display: grid; gap: 14px; }

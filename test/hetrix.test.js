@@ -1,7 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fetchAllMonitors, HetrixError, normalizeMonitor, normalizeReportDays } from '../lib/hetrix.js';
+import { readFileSync } from 'node:fs';
 import { fakeHetrix } from './helpers.js';
+
+// A real /v3/uptime-monitors/{id}/report response.
+const liveReport = JSON.parse(readFileSync(new URL('./fixtures/uptime-report.json', import.meta.url)));
 
 test('follows pagination with bearer auth', async () => {
   const calls = [];
@@ -53,18 +57,25 @@ test('uptime and response time parsing', () => {
   assert.equal(normalizeMonitor({ locations: [] }).responseTime, null);
 });
 
-test('report days: array form and date-keyed object form', () => {
-  const expected = [
-    { date: '2026-11-12', uptime: 99.5 },
+test('report days: parses a real HetrixTools v3 report', () => {
+  assert.deepEqual(normalizeReportDays(liveReport), [
+    { date: '2026-11-12', uptime: 100 },
     { date: '2026-11-13', uptime: 100 },
-  ];
-  assert.deepEqual(
-    normalizeReportDays({ data: [{ date: '2026-11-13', uptime: '100' }, { date: '2026-11-12', uptime: 99.5 }] }),
-    expected,
-  );
-  assert.deepEqual(
-    normalizeReportDays({ data: { '2026-11-13': { uptime: 100 }, '2026-11-12': { uptime: 99.5 } } }),
-    expected,
-  );
+  ]);
+});
+
+test('report days: sorted by date; missing percentage is null; empty report is []', () => {
+  const report = {
+    data: {
+      '2026-11-13': { uptime: { percentage: '99.5' } },
+      '2026-11-11': { uptime: {} },
+      '2026-11-12': {},
+    },
+  };
+  assert.deepEqual(normalizeReportDays(report), [
+    { date: '2026-11-11', uptime: null },
+    { date: '2026-11-12', uptime: null },
+    { date: '2026-11-13', uptime: 99.5 },
+  ]);
   assert.deepEqual(normalizeReportDays({}), []);
 });

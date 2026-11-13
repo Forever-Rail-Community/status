@@ -51,6 +51,7 @@ test('manual-only page needs no API key and makes no API calls', async () => {
   const body = await res.json();
   assert.equal(res.status, 200);
   assert.equal(body.overall, 'maintenance');
+  assert.deepEqual(body.features, { history: false, login: false }); // no database configured
 });
 
 test('missing API key with monitor components is a 500', async () => {
@@ -92,8 +93,9 @@ const historyConfig = () =>
   ]));
 
 test('history: one report per unique monitor, keyed by component', async () => {
+  const report = { data: { '2026-11-13': { uptime: { percentage: 100 } } } };
   const days = [{ date: '2026-11-13', uptime: 100 }];
-  const { fetchImpl, calls } = fakeHetrix({ reports: { m1: { data: days }, m2: { data: days } } });
+  const { fetchImpl, calls } = fakeHetrix({ reports: { m1: report, m2: report } });
 
   const body = await loadHistory({ config: historyConfig(), apiKey: 'k', fetchImpl });
 

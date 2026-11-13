@@ -1,8 +1,9 @@
+import { renderChrome } from './chrome.js';
+import { getJson } from './data.js';
 import { byId } from './dom.js';
 import { OVERALL_LABELS, STATUS_LABELS, formatAgo } from './format.js';
-import { componentNameMap, renderActiveIncidents, renderPastIncidents } from './incidents-view.js';
-import { renderFooter, renderGroups, renderHeader } from './render.js';
-import { applyTheme } from './theme.js';
+import { componentNameMap, renderActiveIncidents } from './incidents-view.js';
+import { renderGroups } from './render.js';
 import { attachTooltip } from './tooltip.js';
 
 const STATUS_REFRESH_MS = 60_000;
@@ -10,7 +11,6 @@ const HISTORY_REFRESH_MS = 10 * 60_000;
 const CLOCK_TICK_MS = 15_000;
 
 const els = {
-  header: byId('site-header'),
   banner: byId('banner'),
   bannerTitle: byId('banner-title'),
   bannerState: byId('banner-state'),
@@ -18,26 +18,22 @@ const els = {
   activeIncidents: byId('active-incidents'),
   updated: byId('updated'),
   groups: byId('groups'),
-  pastIncidents: byId('past-incidents'),
-  footer: byId('site-footer'),
 };
 
 const state = {
   status: null, // last good /api/status
-  history: null, // last good /api/history
+  history: null, // last good /api/history (daily uptime)
   failed: false, // did the latest status refresh fail?
   openKeys: new Set(), // expanded groups/components/incidents, kept across re-renders
 };
 
 // ---------- rendering ----------
 
-function renderPageChrome(page) {
-  document.title = page.title;
-  applyTheme(page);
-  els.header.replaceChildren(...renderHeader(page));
-  els.footer.replaceChildren(...renderFooter(page));
-  els.bannerNotice.textContent = page.notice ?? '';
-  els.bannerNotice.hidden = !page.notice;
+function renderPageChrome(status) {
+  document.title = status.page.title;
+  renderChrome(status, { current: 'status' });
+  els.bannerNotice.textContent = status.page.notice ?? '';
+  els.bannerNotice.hidden = !status.page.notice;
 }
 
 function renderUpdated() {
@@ -45,18 +41,6 @@ function renderUpdated() {
   if (!status) return;
   const ago = formatAgo(status.generatedAt);
   els.updated.textContent = failed ? `Couldn't refresh · last updated ${ago}` : `Updated ${ago}`;
-}
-
-function renderIncidents({ incidents, groups, page }) {
-  // null = incidents not configured (or the database is unreachable): show nothing.
-  els.pastIncidents.hidden = !incidents;
-  if (!incidents) {
-    els.activeIncidents.replaceChildren();
-    return;
-  }
-  const names = componentNameMap(groups);
-  els.activeIncidents.replaceChildren(...renderActiveIncidents(incidents.active, names, state.openKeys));
-  els.pastIncidents.replaceChildren(...renderPastIncidents(incidents.recent, names, page.historyDays, state.openKeys));
 }
 
 function renderStatus() {
@@ -68,12 +52,15 @@ function renderStatus() {
     return;
   }
 
+  // null = incidents not set up (or the database is unreachable): show none.
   const incidents = status.incidents ? [...status.incidents.active, ...status.incidents.recent] : [];
 
   els.banner.dataset.state = status.overall;
   els.bannerTitle.textContent = OVERALL_LABELS[status.overall];
   els.bannerState.textContent = STATUS_LABELS[status.overall];
-  renderIncidents(status);
+  els.activeIncidents.replaceChildren(
+    ...renderActiveIncidents(status.incidents?.active ?? [], componentNameMap(status.groups), openKeys),
+  );
   els.groups.replaceChildren(
     ...renderGroups(status.groups, { history, incidents, days: status.page.historyDays, openKeys }),
   );
@@ -82,18 +69,12 @@ function renderStatus() {
 
 // ---------- data ----------
 
-async function getJson(url) {
-  const res = await fetch(url, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`${url} responded ${res.status}`);
-  return res.json();
-}
-
 async function refreshStatus() {
   try {
     const isFirstLoad = !state.status;
     state.status = await getJson('/api/status');
     state.failed = false;
-    if (isFirstLoad) renderPageChrome(state.status.page);
+    if (isFirstLoad) renderPageChrome(state.status);
   } catch (err) {
     console.error('Status refresh failed:', err);
     state.failed = true;
@@ -123,9 +104,7 @@ function rememberOpenState(container) {
   }, true);
 }
 
-for (const container of [els.groups, els.activeIncidents, els.pastIncidents]) {
-  rememberOpenState(container);
-}
+for (const container of [els.groups, els.activeIncidents]) rememberOpenState(container);
 attachTooltip(els.groups);
 refreshStatus();
 refreshHistory();

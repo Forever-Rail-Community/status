@@ -10,6 +10,7 @@ import {
   createIncident,
   deleteIncident,
   editIncident,
+  getIncident,
   listIncidents,
 } from '../lib/incidents.js';
 
@@ -106,4 +107,15 @@ test('delete cascades; missing ids raise NotFoundError', { skip }, async () => {
   await assert.rejects(deleteIncident(db, id), NotFoundError);
   await assert.rejects(addIncidentUpdate(db, id, { status: 'resolved', message: 'x' }, 'a'), NotFoundError);
   await assert.rejects(editIncident(db, id, { title: 'x' }), NotFoundError);
+});
+
+test('getIncident returns one incident with updates; missing id is NotFoundError', { skip }, async () => {
+  const id = await createIncident(db, { ...base, title: 'Fetch me' }, 'dalton');
+  await addIncidentUpdate(db, id, { status: 'identified', message: 'Found it' }, 'dalton');
+
+  const incident = await getIncident(db, id);
+  assert.equal(incident.title, 'Fetch me');
+  assert.deepEqual(incident.updates.map((u) => u.status), ['identified', 'investigating']);
+  assert.equal('author' in incident.updates[0], false);
+  await assert.rejects(getIncident(db, 999999), NotFoundError);
 });

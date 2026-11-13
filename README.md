@@ -7,11 +7,13 @@ status and daily uptime from HetrixTools, plus incidents that admins post from a
 ```
 status.config.js       ← groups, components, title, logo, header, footer
 public/                status page (index.html, styles.css, js/)
+public/history/        /history: resolved incidents by month
 public/admin/          admin page for incidents
 api/status.js          GET  live status + incidents        (CDN cache 60s)
 api/history.js         GET  daily uptime from HetrixTools  (CDN cache 1h)
 api/auth/*.js          Discord sign-in / sign-out
 api/admin/*.js         incident management (signed-in admins only)
+lib/announcements.js   Discord channel announcements (Components V2)
 lib/                   all the logic; api/ files are thin wrappers
 scripts/               npm run monitors, npm run db:migrate
 test/                  npm test (and npm run test:db against a real Postgres)
@@ -49,9 +51,36 @@ Then visit `/admin`, sign in with Discord, and post incidents.
   status until you post an update moving it to *In progress*.
 - Posting an update with status **Resolved** closes it. Posting any other status on a
   resolved incident reopens it.
-- Open incidents appear under the banner. Resolved ones are listed under "Past incidents"
-  for `historyDays`, and show in the uptime strip tooltips for the days they covered.
+- Open incidents appear under the banner. Resolved ones are listed on `/history` for
+  `historyDays`, and show in the uptime strip tooltips for the days they covered.
 - New incidents reach visitors within about a minute (the status response is cached for 60s).
+
+## Pages and navigation
+
+- `/`: live status, open incidents and uptime strips.
+- `/history`: resolved incidents from the last `historyDays`, grouped by month.
+- Top right of the header: **History** (shown when incidents are set up), your
+  `header.button`, and **Log in** → `/admin` (shown when admin sign-in is set up).
+- Footer: a **Light / Dark / Auto** switcher. Each visitor's choice is remembered in their
+  browser and wins over the `theme` setting; it applies before the page draws, and the
+  admin page follows it too.
+
+## Discord announcements
+
+Set `DISCORD_WEBHOOK_URL` to a channel webhook (Discord channel → Edit Channel →
+Integrations → Webhooks → New Webhook → Copy Webhook URL) and redeploy. From then on,
+posting an incident or an update also posts it to that channel. No bot is needed.
+
+- Messages use Discord's **Components V2** layout: a sidebar coloured by impact (green once
+  resolved), the title, status, the update text, affected components, a timestamp shown in
+  each reader's timezone, and a link to the status page.
+- Each new incident and each update is its own message, so people get notified.
+- **Announce in Discord** on the admin forms (ticked by default) lets you skip a post,
+  e.g. for a typo fix. Editing details or deleting an incident never posts.
+- Messages can't ping: `@everyone` and role mentions in incident text are not triggered.
+- If Discord is unreachable, the incident is still saved and the admin page says the
+  announcement failed; the reason is in the Vercel logs.
+- Admin names are not included, same as on the status page.
 
 ## Admin access
 
@@ -74,7 +103,7 @@ The admin page isn't linked from the status page and is marked `noindex`.
 | `header.showTitle` | `false` hides the heading (it stays available to screen readers) |
 | `header.logo` | `{ src, alt, height, href }` or `null`. Put the image in `public/` |
 | `header.links` | `[{ label, href }]` pill links in the middle of the header |
-| `header.button` | `{ label, href }` button on the right, or `null` |
+| `header.button` | `{ label, href }` button on the right (e.g. Discord), or `null` |
 | `footer.text` / `footer.links` | Footer line and links |
 | `footer.poweredBy` | `false` hides "Powered by HetrixTools" |
 | `groups` | `[{ name, description?, components: [...] }]` |

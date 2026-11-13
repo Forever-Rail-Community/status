@@ -2,42 +2,6 @@ import { h } from './dom.js';
 import { STATUS_LABELS, formatUptime } from './format.js';
 import { componentSlots, groupSlots, lastDates, rangeUptime, renderStrip } from './strip.js';
 
-// ---------- header & footer (rendered once; they only change on redeploy) ----------
-
-function renderBrand({ title, header }) {
-  const { logo, showTitle } = header;
-  const content = [
-    logo && h('img', { class: 'logo', src: logo.src, alt: logo.alt, style: { height: `${logo.height}px` } }),
-    // A hidden title stays in the page for screen readers.
-    h('h1', { class: showTitle ? 'brand-title' : 'sr-only' }, title),
-  ];
-  return logo?.href
-    ? h('a', { class: 'brand', href: logo.href }, content)
-    : h('div', { class: 'brand' }, content);
-}
-
-const renderLinks = (links, className) =>
-  links.map((l) => h('a', { class: className, href: l.href }, l.label));
-
-export function renderHeader(page) {
-  const { links, button } = page.header;
-  return [
-    renderBrand(page),
-    links.length > 0 && h('nav', { class: 'nav' }, renderLinks(links, 'pill')),
-    button && h('div', { class: 'actions' }, renderLinks([button], 'pill')),
-  ].filter(Boolean);
-}
-
-export function renderFooter({ footer }) {
-  return [
-    footer.text && h('p', { class: 'footer-text' }, footer.text),
-    footer.links.length > 0 && h('nav', { class: 'footer-links' }, renderLinks(footer.links, 'footer-link')),
-    footer.poweredBy && h('p', { class: 'powered-by' },
-      'Powered by ', h('a', { href: 'https://hetrixtools.com', rel: 'noopener' }, 'HetrixTools'),
-    ),
-  ].filter(Boolean);
-}
-
 // ---------- row building blocks ----------
 
 const chevron = () => h('span', { class: 'chevron', 'aria-hidden': 'true' });

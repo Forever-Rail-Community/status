@@ -48,10 +48,16 @@ export function componentPicker(groups, selected = []) {
   );
 }
 
-/** Form values as a plain object; checkbox groups become arrays. */
+/** "Announce in Discord", ticked by default. Nothing is rendered when no webhook is configured. */
+export const announceCheckbox = (discordEnabled) =>
+  discordEnabled &&
+  h('label', { class: 'check' }, h('input', { type: 'checkbox', name: 'announce', checked: true }), 'Announce in Discord');
+
+/** Form values as a plain object; checkbox groups become arrays, the announce box a boolean. */
 export function formValues(form) {
   const data = new FormData(form);
   const values = Object.fromEntries(data);
   if (form.querySelector('[name="components"]')) values.components = data.getAll('components');
+  if (form.querySelector('[name="announce"]')) values.announce = data.has('announce');
   return values;
 }

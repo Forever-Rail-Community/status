@@ -23,7 +23,7 @@ function request(method, path, { body, cookie = signedIn, origin = ORIGIN } = {}
   });
 }
 
-const routes = (handlers, db, env = authEnv) => adminRoutes(handlers, { config: baseConfig(), db, env });
+const routes = (handlers, db, env = authEnv, fetchImpl) => adminRoutes(handlers, { config: baseConfig(), db, env, fetchImpl });
 const stubDb = { query: async () => [] };
 
 // ---------- access control ----------
@@ -42,6 +42,11 @@ test('session lists components and choices for the form', async () => {
   assert.deepEqual(body.user, { id: '111', name: 'Dalton' });
   assert.deepEqual(body.groups[0].components.map((c) => c.id), ['site', 'support']);
   assert.ok(body.impacts.includes('major_outage'));
+  assert.equal(body.discord, false);
+
+  const withWebhook = { ...authEnv, DISCORD_WEBHOOK_URL: 'https://discord.com/api/webhooks/1/tok' };
+  const on = await routes(sessionHandlers, stubDb, withWebhook).GET(request('GET', '/api/admin/session'));
+  assert.equal((await on.json()).discord, true);
 });
 
 test('writes need same origin, valid JSON and valid fields', async () => {
@@ -115,4 +120,50 @@ test('create → update → edit → resolve → delete through the API', { skip
   assert.equal((await incidents.DELETE(request('DELETE', `/api/admin/incidents?id=${id}`))).status, 200);
   assert.equal((await list()).length, 0);
   assert.equal((await incidents.DELETE(request('DELETE', `/api/admin/incidents?id=${id}`))).status, 404);
+});
+
+test('Discord: posting and updating announce; unticked skips; Discord down still saves', { skip }, async () => {
+  const env = { ...authEnv, DISCORD_WEBHOOK_URL: 'https://discord.com/api/webhooks/1/tok' };
+  const sent = [];
+  let discordUp = true;
+  const fakeDiscord = async (url, init) => {
+    if (!discordUp) return new Response('down', { status: 503 });
+    sent.push({ url: new URL(url), body: JSON.parse(init.body) });
+    return Response.json({ id: 'msg' });
+  };
+  const incidents = routes(incidentHandlers, db, env, fakeDiscord);
+  const updates = routes(updateHandlers, db, env, fakeDiscord);
+
+  const created = await incidents.POST(request('POST', '/api/admin/incidents', {
+    body: { title: 'PA route down', impact: 'major_outage', status: 'investigating', components: ['site'], message: 'Checking', announce: true },
+  }));
+  const { id, discord } = await created.json();
+  assert.equal(discord, 'sent');
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].url.searchParams.get('with_components'), 'true');
+  assert.equal(sent[0].body.flags, 1 << 15);
+  assert.match(sent[0].body.components[0].components[1].content, /New incident/);
+  assert.match(sent[0].body.components[0].components[4].content, /\[Status page\]\(https:\/\/status\.example\)/);
+
+  const skipped = await updates.POST(request('POST', `/api/admin/incident-updates?id=${id}`, {
+    body: { status: 'identified', message: 'typo fix', announce: false },
+  }));
+  assert.equal((await skipped.json()).discord, 'skipped');
+  assert.equal(sent.length, 1);
+
+  const resolved = await updates.POST(request('POST', `/api/admin/incident-updates?id=${id}`, {
+    body: { status: 'resolved', message: 'Back up' },
+  }));
+  assert.equal((await resolved.json()).discord, 'sent');
+  assert.equal(sent[1].body.components[0].accent_color, 0x22c55e);
+  assert.match(sent[1].body.components[0].components[1].content, /^\*\*Resolved\*\*/);
+
+  discordUp = false;
+  const failed = await quietly(() => updates.POST(request('POST', `/api/admin/incident-updates?id=${id}`, {
+    body: { status: 'monitoring', message: 'Flapping' },
+  })));
+  assert.equal(failed.status, 201);
+  assert.equal((await failed.json()).discord, 'failed');
+  const [saved] = (await (await incidents.GET(request('GET', '/api/admin/incidents'))).json()).incidents.filter((i) => i.id === id);
+  assert.equal(saved.status, 'monitoring');
 });

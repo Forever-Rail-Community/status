@@ -1,29 +1,4 @@
-export const STATUS_LABELS = {
-  operational: 'Operational',
-  degraded: 'Degraded performance',
-  partial_outage: 'Partial outage',
-  major_outage: 'Major outage',
-  maintenance: 'Under maintenance',
-  paused: 'Paused',
-  unknown: 'Unknown',
-  none: 'No data',
-};
-
-export const INCIDENT_STATUS_LABELS = {
-  investigating: 'Investigating',
-  identified: 'Identified',
-  monitoring: 'Monitoring',
-  scheduled: 'Scheduled',
-  in_progress: 'In progress',
-  resolved: 'Resolved',
-};
-
-export const IMPACT_LABELS = {
-  degraded: 'Degraded performance',
-  partial_outage: 'Partial outage',
-  major_outage: 'Major outage',
-  maintenance: 'Maintenance',
-};
+export { STATUS_LABELS, INCIDENT_STATUS_LABELS, IMPACT_LABELS } from './labels.js';
 
 const dateTimeFormat = new Intl.DateTimeFormat(undefined, {
   month: 'short',

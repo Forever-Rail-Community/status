@@ -97,9 +97,11 @@ a { color: inherit; }
 
 .brand-title {
   margin: 0;
+  overflow: hidden;
   font-size: 1.2rem;
   font-weight: 600;
   letter-spacing: -0.02em;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -116,6 +118,11 @@ a { color: inherit; }
   text-decoration: none;
   white-space: nowrap;
   transition: background 0.15s, border-color 0.15s;
+}
+
+.pill[aria-current="page"] {
+  background: var(--surface-2);
+  border-color: color-mix(in srgb, var(--text) 30%, var(--border));
 }
 
 .pill:focus-visible, summary.row:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -424,8 +431,6 @@ details[open] > summary .strip-compact { display: none; }
 
 .incident-update-head time { color: var(--muted); font-size: 0.75rem; }
 
-.past { margin-top: 40px; }
-
 .section-title {
   margin: 0 0 12px;
   font-size: 0.9375rem;
@@ -523,6 +528,58 @@ details[open] > summary .strip-compact { display: none; }
 .footer-link { text-decoration: none; }
 .footer-link:hover { color: var(--text); }
 
+/* ---------- theme switcher (footer) ---------- */
+
+.theme-switcher {
+  display: inline-flex;
+  gap: 2px;
+  margin-top: 10px;
+  padding: 3px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.theme-option {
+  padding: 3px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.theme-option:hover { color: var(--text); }
+.theme-option[aria-pressed="true"] { background: var(--surface-2); color: var(--text); }
+.theme-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* ---------- history page ---------- */
+
+.history-page { padding-top: 36px; }
+
+.page-title {
+  margin: 0 0 6px;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+#history { display: grid; gap: 28px; }
+
+.history-empty {
+  margin: 0;
+  padding: 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
 @keyframes pulse { 50% { opacity: 0.5; } }
 
 @media (prefers-reduced-motion: reduce) {
@@ -530,10 +587,12 @@ details[open] > summary .strip-compact { display: none; }
 }
 
 @media (max-width: 600px) {
+  /* Title on its own row, buttons underneath, so a long title never overlaps them. */
   .site-header {
-    grid-template-columns: 1fr auto;
-    grid-template-areas: "brand actions" "nav nav";
+    grid-template-columns: 1fr;
+    grid-template-areas: "brand" "actions" "nav";
   }
+  .actions { justify-content: flex-start; }
   .nav { overflow-x: auto; }
   .strip-compact { display: none; }
   /* Long status + uptime drops to its own line instead of overflowing. */

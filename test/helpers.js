@@ -11,7 +11,7 @@ export function fakeHetrix({ monitors = [], reports = {}, fail = {} } = {}) {
     if (failure) return new Response('upstream detail', { status: failure[1] });
 
     const report = url.pathname.match(/\/uptime-monitors\/([^/]+)\/report$/);
-    if (report) return Response.json(reports[report[1]] ?? { data: [] });
+    if (report) return Response.json(reports[report[1]] ?? { data: {} });
 
     if (url.pathname.endsWith('/uptime-monitors')) {
       return Response.json({ monitors, meta: { pagination: { next: null } } });

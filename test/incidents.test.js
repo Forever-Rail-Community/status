@@ -113,3 +113,8 @@ test('references to removed components are dropped; null incidents means unavail
   assert.deepEqual(body.incidents.active[0].components, ['site']);
   assert.equal(buildStatus(config, monitorsUp, null).incidents, null);
 });
+
+test('features: History needs incidents, Log in needs admin sign-in', () => {
+  assert.deepEqual(buildStatus(config, monitorsUp, []).features, { history: true, login: false });
+  assert.deepEqual(buildStatus(config, monitorsUp, null, { login: true }).features, { history: false, login: true });
+});
