@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Status</title>
+  <link rel="preconnect" href="https://rsms.me/">
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/js/app.js"></script>
+</head>
+<body>
+  <header class="site-header" id="site-header"></header>
+
+  <main class="page">
+    <section class="banner" id="banner" data-state="loading" aria-live="polite">
+      <div class="banner-head">
+        <h2 class="banner-title" id="banner-title">Checking systems…</h2>
+        <span class="banner-state" id="banner-state"></span>
+      </div>
+      <p class="banner-notice" id="banner-notice" hidden></p>
+    </section>
+
+    <div class="incidents" id="active-incidents"></div>
+
+    <p class="updated" id="updated"></p>
+    <hr class="divider">
+
+    <div class="groups" id="groups"></div>
+
+    <section class="past" id="past-incidents" hidden></section>
+  </main>
+
+  <footer class="site-footer page" id="site-footer"></footer>
+</body>
+</html>

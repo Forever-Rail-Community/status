@@ -1,0 +1,192 @@
+/* Admin area. Builds on the tokens in /styles.css. */
+
+.admin {
+  display: grid;
+  gap: 28px;
+  padding-top: 32px;
+  padding-bottom: 48px;
+}
+
+.admin h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.admin h3 { margin: 0; font-size: 0.9375rem; }
+
+.muted { color: var(--muted); }
+.small { font-size: 0.8125rem; }
+.admin p { margin: 0; }
+
+.card {
+  padding: 18px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.card.center {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 36px 18px;
+  text-align: center;
+}
+
+.count {
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.admin-lists, .admin-section { display: grid; gap: 14px; }
+.admin-section h2 { margin: 0; }
+
+/* ---------- forms ---------- */
+
+.incident-form, .update-form { display: grid; gap: 14px; }
+
+.field { display: grid; gap: 5px; min-width: 0; }
+.field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+.field-label { font-size: 0.8125rem; font-weight: 500; }
+.field-hint { color: var(--muted); font-size: 0.75rem; }
+
+input, select, textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+textarea { resize: vertical; }
+
+input:focus-visible, select:focus-visible, textarea:focus-visible, .btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.components-picker {
+  margin: 0;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.components-picker legend { padding: 0 4px; }
+
+.picker-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  padding: 4px 0;
+}
+
+.picker-group-name {
+  flex-basis: 100%;
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.check input { width: auto; accent-color: var(--accent); }
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.form-error { margin-right: auto; color: var(--major_outage); font-size: 0.8125rem; }
+.form-error:empty { display: none; }
+
+.btn {
+  padding: 7px 14px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.btn:disabled { opacity: 0.6; cursor: progress; }
+.btn-primary { border-color: transparent; background: var(--accent); color: var(--on-accent); }
+.btn-danger { color: var(--major_outage); }
+
+/* ---------- incident cards ---------- */
+
+.incident-admin {
+  display: grid;
+  gap: 14px;
+  border-left: 3px solid var(--state);
+}
+
+.incident-admin-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.badges { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--state) 15%, transparent);
+  color: var(--state);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.timeline-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 12px 0 0;
+  list-style: none;
+  border-top: 1px solid var(--border);
+}
+
+.update-meta { display: flex; gap: 8px; align-items: baseline; font-size: 0.8125rem; }
+.update-message { white-space: pre-line; font-size: 0.875rem; }
+
+.incident-admin-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.subsection { flex: 1; }
+.subsection > summary { cursor: pointer; color: var(--muted); font-size: 0.8125rem; font-weight: 500; }
+.subsection[open] > summary { margin-bottom: 12px; }
