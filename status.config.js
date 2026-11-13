@@ -54,7 +54,7 @@ export default {
   groups: [
     {
       name: 'Servers',
-      description: 'Servers that host and offer access to Forever Rail's community.',
+      description: "Servers that host and offer access to Forever Rail's community.",
       components: [
         // HetrixTools "Service" monitors checking each route's TCP port.
         { id: 'frc-run8', name: 'Run8', monitor: 'd71b93dd7d6de8cc07143d4f4fc48a12', description: 'The server that hosts the communities Run8 routes.' },
