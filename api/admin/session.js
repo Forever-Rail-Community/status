@@ -1,5 +1,6 @@
 // GET /api/admin/session
 import { adminRoutes } from '../../lib/admin.js';
 import { sessionHandlers } from '../../lib/admin-incidents.js';
+import { route } from '../../lib/route.js';
 
-export const { GET } = adminRoutes(sessionHandlers);
+export default route(adminRoutes(sessionHandlers));
