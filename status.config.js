@@ -41,7 +41,7 @@ export default {
     ],
 
     // Button on the far right. null = none.
-    button: { label: 'Discord', href: 'https://discord.gg/WE9hvxps4' },
+    button: { label: 'Discord', href: 'https://discord.gg/jFVVCJVbuh' },
     // button: { label: 'Join Discord', href: 'https://discord.gg/your-invite' },
   },
 
