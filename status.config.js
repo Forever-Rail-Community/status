@@ -13,13 +13,13 @@
 
 export default {
   // Browser tab title, and the heading next to the logo when header.showTitle is true.
-  title: 'Forever Rail Status',
+  title: 'Forever Rail Community Status',
 
   // Optional message inside the status banner. '' to hide.
   notice: 'Live status of Forever Rail servers and services. Having trouble? Let us know in Discord.',
 
   // 'dark' | 'light' | 'auto' (auto follows the visitor's system setting)
-  theme: 'dark',
+  theme: 'auto',
 
   // Brand colour for admin buttons and focus rings, e.g. '#e5a00d'. null = neutral.
   accent: null,
@@ -48,31 +48,23 @@ export default {
   footer: {
     text: '© Forever Rail Community',
     links: [],
-    poweredBy: true, // "Powered by HetrixTools"
+    poweredBy: false, // "Powered by HetrixTools"
   },
 
   groups: [
     {
-      name: 'Run8 Routes',
-      description: 'Multiplayer route servers',
+      name: 'Servers',
+      description: "Servers that host and offer access to Forever Rail's community.",
       components: [
         // HetrixTools "Service" monitors checking each route's TCP port.
-        { id: 'run8-se', name: 'SE Route', monitor: 'REPLACE_WITH_MONITOR_ID', description: 'Port 15199' },
-        { id: 'run8-ags', name: 'AGS Route', monitor: 'REPLACE_WITH_MONITOR_ID', description: 'Port 15197' },
-        { id: 'run8-pa', name: 'PA Route', monitor: 'REPLACE_WITH_MONITOR_ID', description: 'Port 15198' },
-      ],
-    },
-    {
-      name: 'Railroader',
-      components: [
-        { id: 'railroader-server', name: 'Railroader server', status: 'operational' },
+        { id: 'frc-run8', name: 'Run8', monitor: 'd71b93dd7d6de8cc07143d4f4fc48a12', description: 'The server that hosts the communities Run8 routes.' },
+        { id: 'frc-railroader', name: 'Railroader', monitor: 'a4060a4edb61bed4a7b5243aeb5b8da1', description: 'The server that hosts the communities Railroader routes.' },
       ],
     },
     {
       name: 'Community services',
       components: [
-        { id: 'ops-dashboard', name: 'Operations dashboard', monitor: 'REPLACE_WITH_MONITOR_ID' },
-        { id: 'discord', name: 'Discord server', status: 'operational' },
+        { id: 'discord', name: 'Discord server', status: 'operational' }
       ],
     },
   ],
