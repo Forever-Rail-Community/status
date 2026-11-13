@@ -20,7 +20,7 @@ function content({ tip, tipTitle, tipState, tipDetail, tipBody, tipItems }) {
       h('div', { class: 'tip-items-label' }, 'Incidents'),
       tipItems.split('\n').map((item) => h('div', { class: 'tip-item' }, item)),
     ),
-  ];
+  ].filter(Boolean); // replaceChildren() would print a missing section as "undefined"
 }
 
 export function attachTooltip(root) {
