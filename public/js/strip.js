@@ -70,6 +70,16 @@ export function groupSlots(slotLists) {
 
 export const rangeUptime = (slots) => average(slots.map((s) => s.uptime));
 
+/**
+ * Drops the no-data days at the start, from before monitoring began, so a new
+ * monitor's strip starts on its first day instead of with weeks of grey.
+ * Gaps later on stay; a strip with no data at all is kept whole.
+ */
+export function trimToMonitored(slots) {
+  const start = slots.findIndex((s) => s.level !== 'none');
+  return start <= 0 ? slots : slots.slice(start);
+}
+
 /** Consecutive days at the same level become one run. */
 function toRuns(slots) {
   const runs = [];

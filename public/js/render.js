@@ -1,6 +1,13 @@
 import { h } from './dom.js';
-import { STATUS_LABELS, formatUptime } from './format.js';
-import { componentSlots, groupSlots, lastDates, rangeUptime, renderStrip } from './strip.js';
+import { STATUS_LABELS, formatShortDay, formatUptime } from './format.js';
+import {
+  componentSlots,
+  groupSlots,
+  lastDates,
+  rangeUptime,
+  renderStrip,
+  trimToMonitored,
+} from './strip.js';
 
 // ---------- row building blocks ----------
 
@@ -16,17 +23,26 @@ const statusLabel = (status) =>
   h('span', { class: 'status-label', dataset: { state: status } }, STATUS_LABELS[status]);
 
 /** Strip + uptime %, with the live status when it isn't operational or there's no uptime to show. */
-function rowAside(status, slots, uptime) {
+/** 'Nov 12' when the strip was trimmed to when monitoring began, else null. */
+const startedOn = (slots, ctx) => (slots.length < ctx.days ? formatShortDay(slots[0].date) : null);
+
+function rowAside(status, slots, uptime, ctx) {
+  const since = startedOn(slots, ctx);
   return h('div', { class: 'row-aside' },
     (status !== 'operational' || uptime === null) && statusLabel(status),
     renderStrip(slots, { compact: true }),
-    uptime !== null && h('span', { class: 'uptime' }, `${formatUptime(uptime)} uptime`),
+    uptime !== null && h('span', { class: 'uptime' },
+      since ? `${formatUptime(uptime)} · since ${since}` : `${formatUptime(uptime)} uptime`),
   );
 }
 
-function renderTimeline(slots) {
+function renderTimeline(slots, ctx) {
+  const since = startedOn(slots, ctx);
   return h('div', { class: 'timeline' },
-    h('div', { class: 'timeline-labels' }, h('span', {}, `${slots.length} days ago`), h('span', {}, 'Today')),
+    h('div', { class: 'timeline-labels' },
+      h('span', {}, since ? `Since ${since}` : `${ctx.days} days ago`),
+      h('span', {}, 'Today'),
+    ),
     renderStrip(slots),
   );
 }
@@ -49,22 +65,24 @@ function slotsFor(component, ctx) {
   });
 }
 
-function renderComponent(component, slots, ctx) {
+function renderComponent(component, allSlots, ctx) {
+  const slots = trimToMonitored(allSlots);
   const uptime = component.source === 'hetrix' ? (rangeUptime(slots) ?? component.uptime) : null;
   return collapsible('component', `c:${component.id}`, ctx,
-    [chevron(), rowTitle('h3', component.name, component.description), rowAside(component.status, slots, uptime)],
-    h('div', { class: 'component-body' }, renderTimeline(slots)),
+    [chevron(), rowTitle('h3', component.name, component.description), rowAside(component.status, slots, uptime, ctx)],
+    h('div', { class: 'component-body' }, renderTimeline(slots, ctx)),
   );
 }
 
 function renderGroup(group, key, ctx) {
   const slotsByComponent = group.components.map((c) => [c, slotsFor(c, ctx)]);
-  const slots = groupSlots(slotsByComponent.map(([, s]) => s));
+  // Combine at full length (days line up), then trim: the group starts with its earliest component.
+  const slots = trimToMonitored(groupSlots(slotsByComponent.map(([, s]) => s)));
 
   return collapsible('group', key, ctx,
-    [chevron(), rowTitle('h2', group.name, group.description), rowAside(group.status, slots, rangeUptime(slots))],
+    [chevron(), rowTitle('h2', group.name, group.description), rowAside(group.status, slots, rangeUptime(slots), ctx)],
     h('div', { class: 'group-body' },
-      renderTimeline(slots),
+      renderTimeline(slots, ctx),
       h('div', { class: 'children' }, slotsByComponent.map(([c, s]) => renderComponent(c, s, ctx))),
     ),
   );
@@ -79,6 +97,7 @@ export function renderGroups(groups, { history, incidents, days, openKeys }) {
   const ctx = {
     history,
     openKeys,
+    days,
     axis: lastDates(days),
     // Planned maintenance that hasn't started doesn't colour the strips.
     incidents: incidents.filter((i) => i.status !== 'scheduled'),

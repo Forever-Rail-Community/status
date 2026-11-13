@@ -58,6 +58,10 @@ const toDate = (isoDate) => {
 };
 
 const dayFormat = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+const shortDayFormat = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
+
+/** 'YYYY-MM-DD' → 'Nov 12' */
+export const formatShortDay = (isoDate) => shortDayFormat.format(toDate(isoDate));
 
 /** 'Nov 13, 2026', or 'Nov 1 – 13, 2026' for a range. */
 export function formatDayRange(first, last = first) {
