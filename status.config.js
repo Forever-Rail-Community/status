@@ -57,8 +57,8 @@ export default {
       description: "Servers that host and offer access to Forever Rail's community game servers.",
       components: [
         // HetrixTools "Service" monitors checking each route's TCP port.
-        { id: 'frc-run8', name: 'Run8', monitor: 'd71b93dd7d6de8cc07143d4f4fc48a12', description: 'The server that hosts the communities Run8 routes.' },
-        { id: 'frc-railroader', name: 'Railroader', monitor: 'a4060a4edb61bed4a7b5243aeb5b8da1', description: 'The server that hosts the communities Railroader routes.' },
+        { id: 'frc-run8', name: 'Run8', monitor: 'd71b93dd7d6de8cc07143d4f4fc48a12', description: 'Server that hosts and provides Run8 instances for community use.' },
+        { id: 'frc-railroader', name: 'Railroader', monitor: 'a4060a4edb61bed4a7b5243aeb5b8da1', description: 'Server that hosts and provides Railroader instances for community use.' },
       ],
     },
     {
