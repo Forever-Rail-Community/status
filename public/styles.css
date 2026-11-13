@@ -108,15 +108,20 @@ a { color: inherit; }
 .nav { grid-area: nav; display: flex; gap: 6px; }
 .actions { grid-area: actions; display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
 
+/* Used on both links and <button>s; buttons don't inherit font or colour, so set them. */
 .pill {
   padding: 4px 10px;
   border-radius: 7px;
   border: 1px solid var(--border);
   background: var(--surface);
+  color: inherit;
+  font: inherit;
   font-size: 0.8125rem;
   font-weight: 500;
+  line-height: 1.5;
   text-decoration: none;
   white-space: nowrap;
+  cursor: pointer;
   transition: background 0.15s, border-color 0.15s;
 }
 
