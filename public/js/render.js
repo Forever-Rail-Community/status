@@ -47,9 +47,9 @@ function renderTimeline(slots, ctx) {
   );
 }
 
-/** <details> that remembers being open across re-renders. */
+/** <details> that remembers being opened or closed across re-renders (closed by default). */
 const collapsible = (className, key, ctx, summary, body) =>
-  h('details', { class: className, 'data-key': key, open: ctx.openKeys.has(key) },
+  h('details', { class: className, 'data-key': key, open: ctx.expanded.isOpen(key, false) },
     h('summary', { class: 'row' }, summary),
     body,
   );
@@ -91,12 +91,12 @@ function renderGroup(group, key, ctx) {
 /**
  * @param options.history   /api/history payload (or null while loading)
  * @param options.incidents active + recent incidents
- * @param options.openKeys  Set of data-key values whose <details> should render open
+ * @param options.expanded  remembered open/closed choices (see expanded.js)
  */
-export function renderGroups(groups, { history, incidents, days, openKeys }) {
+export function renderGroups(groups, { history, incidents, days, expanded }) {
   const ctx = {
     history,
-    openKeys,
+    expanded,
     days,
     axis: lastDates(days),
     // Planned maintenance that hasn't started doesn't colour the strips.

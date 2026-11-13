@@ -2,7 +2,8 @@ import { renderChrome } from './chrome.js';
 import { getJson } from './data.js';
 import { byId } from './dom.js';
 import { OVERALL_LABELS, STATUS_LABELS, formatAgo } from './format.js';
-import { componentNameMap, renderActiveIncidents } from './incidents-view.js';
+import { createExpandedState } from './expanded.js';
+import { componentNameMap, renderActiveIncidents, takesOverBanner } from './incidents-view.js';
 import { renderGroups } from './render.js';
 import { attachTooltip } from './tooltip.js';
 
@@ -24,8 +25,9 @@ const state = {
   status: null, // last good /api/status
   history: null, // last good /api/history (daily uptime)
   failed: false, // did the latest status refresh fail?
-  openKeys: new Set(), // expanded groups/components, kept across re-renders
 };
+
+const expanded = createExpandedState(); // open/closed sections survive the refresh
 
 // ---------- rendering ----------
 
@@ -44,7 +46,7 @@ function renderUpdated() {
 }
 
 function renderStatus() {
-  const { status, history, openKeys } = state;
+  const { status, history } = state;
 
   if (!status) {
     els.banner.dataset.state = 'unknown';
@@ -53,16 +55,19 @@ function renderStatus() {
   }
 
   // null = incidents not set up (or the database is unreachable): show none.
-  const incidents = status.incidents ? [...status.incidents.active, ...status.incidents.recent] : [];
+  const open = status.incidents?.active ?? [];
+  const incidents = status.incidents ? [...open, ...status.incidents.recent] : [];
 
+  // Like Railway: while an incident is open, its card replaces the status banner.
+  els.banner.hidden = open.some(takesOverBanner);
   els.banner.dataset.state = status.overall;
   els.bannerTitle.textContent = OVERALL_LABELS[status.overall];
   els.bannerState.textContent = STATUS_LABELS[status.overall];
   els.activeIncidents.replaceChildren(
-    ...renderActiveIncidents(status.incidents?.active ?? [], componentNameMap(status.groups)),
+    ...renderActiveIncidents(open, componentNameMap(status.groups), expanded),
   );
   els.groups.replaceChildren(
-    ...renderGroups(status.groups, { history, incidents, days: status.page.historyDays, openKeys }),
+    ...renderGroups(status.groups, { history, incidents, days: status.page.historyDays, expanded }),
   );
   renderUpdated();
 }
@@ -94,18 +99,7 @@ async function refreshHistory() {
 
 // ---------- start ----------
 
-// Keeps expanded groups/components open across refreshes.
-// `toggle` doesn't bubble, so listen in the capture phase.
-function rememberOpenState(container) {
-  container.addEventListener('toggle', ({ target }) => {
-    const { key } = target.dataset ?? {};
-    if (!key) return;
-    if (target.open) state.openKeys.add(key);
-    else state.openKeys.delete(key);
-  }, true);
-}
-
-rememberOpenState(els.groups);
+for (const container of [els.groups, els.activeIncidents]) expanded.track(container);
 attachTooltip(els.groups);
 refreshStatus();
 refreshHistory();

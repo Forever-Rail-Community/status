@@ -5,7 +5,6 @@ import { h } from './dom.js';
 import {
   IMPACT_LABELS,
   INCIDENT_STATUS_LABELS,
-  formatAgo,
   formatDateTime,
   formatDuration,
 } from './format.js';
@@ -24,52 +23,67 @@ const incidentState = (incident) => (incident.status === 'scheduled' ? 'maintena
 const lastedFor = (incident) =>
   formatDuration(Date.parse(incident.resolvedAt) - Date.parse(incident.createdAt));
 
-function updateList(updates) {
-  return h('ol', { class: 'incident-updates' },
-    updates.map((u) =>
-      h('li', {},
-        h('div', { class: 'incident-update-head' },
-          h('strong', {}, INCIDENT_STATUS_LABELS[u.status]),
-          h('time', { datetime: u.createdAt }, formatDateTime(u.createdAt)),
-        ),
-        h('p', {}, u.message),
-      ),
+function updateEntry(update, isLatest) {
+  return h('li', { class: 'update' },
+    h('div', { class: 'update-head' },
+      h('strong', {}, INCIDENT_STATUS_LABELS[update.status]),
+      isLatest && h('span', { class: 'latest-tag' }, 'Latest'),
     ),
+    h('p', { class: 'update-message' }, update.message),
+    h('time', { class: 'update-time', datetime: update.createdAt }, formatDateTime(update.createdAt)),
   );
 }
+
+/** Updates, newest first. `markLatest` tags the first one (only while the incident is open). */
+const updateList = (updates, { markLatest = false } = {}) =>
+  h('ol', { class: 'updates' }, updates.map((u, i) => updateEntry(u, markLatest && i === 0)));
 
 // ---------- status page: open incidents ----------
 
-function activeCard(incident, componentNames) {
-  const [latest] = incident.updates;
-  const affected = affectedNames(incident, componentNames);
+// The card shows this many earlier updates; the rest are on the incident's page.
+const EARLIER_SHOWN = 3;
 
-  return h('article', { class: 'incident', dataset: { state: incidentState(incident) } },
-    h('header', { class: 'incident-head' },
-      h('h3', { class: 'incident-title' }, h('a', { href: incidentUrl(incident.id) }, incident.title)),
-      h('span', { class: 'incident-status' }, INCIDENT_STATUS_LABELS[incident.status]),
+const chips = (names) => h('ul', { class: 'chips' }, names.map((name) => h('li', { class: 'chip' }, name)));
+
+/** Open incident as a banner-style card, open by default; the visitor can collapse it. */
+function activeCard(incident, componentNames, expanded) {
+  const key = `inc:${incident.id}`;
+  const href = incidentUrl(incident.id);
+  const [latest, ...earlier] = incident.updates;
+  const affected = incident.components.map((id) => componentNames.get(id) ?? id);
+  const impact = incident.status === 'scheduled' ? 'Scheduled maintenance' : IMPACT_LABELS[incident.impact];
+
+  return h('details', {
+    class: 'incident',
+    'data-key': key,
+    open: expanded.isOpen(key, true),
+    dataset: { state: incidentState(incident) },
+  },
+    h('summary', { class: 'incident-head' },
+      h('span', { class: 'chevron', 'aria-hidden': 'true' }),
+      h('h2', { class: 'incident-title' }, incident.title),
+      h('span', { class: 'incident-impact' }, impact),
+      h('a', { class: 'incident-open', href, title: 'Open incident page', 'aria-label': `Open incident page: ${incident.title}` }, '↗'),
     ),
     h('div', { class: 'incident-body' },
-      latest && h('p', { class: 'incident-message' }, latest.message),
-      h('p', { class: 'incident-meta' },
-        [
-          IMPACT_LABELS[incident.impact],
-          latest && `updated ${formatAgo(Date.parse(latest.createdAt))}`,
-          affected && `Affects ${affected}`,
-        ].filter(Boolean).join(' · '),
-      ),
-      h('a', { class: 'incident-link', href: incidentUrl(incident.id) },
-        incident.updates.length > 1 ? `View incident (${incident.updates.length} updates)` : 'View incident',
-      ),
+      affected.length > 0 && chips(affected),
+      latest && updateList([latest], { markLatest: true }),
+      earlier.length > 0 && h('p', { class: 'updates-divider' }, 'Earlier updates'),
+      earlier.length > 0 && updateList(earlier.slice(0, EARLIER_SHOWN)),
+      earlier.length > EARLIER_SHOWN &&
+        h('a', { class: 'incident-link', href }, `View all ${incident.updates.length} updates`),
     ),
   );
 }
+
+/** True for incidents that replace the status banner (scheduled maintenance doesn't). */
+export const takesOverBanner = (incident) => incident.status !== 'scheduled';
 
 export const componentNameMap = (groups) =>
   new Map(groups.flatMap((g) => g.components.map((c) => [c.id, c.name])));
 
-export const renderActiveIncidents = (incidents, componentNames) =>
-  incidents.map((i) => activeCard(i, componentNames));
+export const renderActiveIncidents = (incidents, componentNames, expanded) =>
+  incidents.map((i) => activeCard(i, componentNames, expanded));
 
 // ---------- /history ----------
 
@@ -133,9 +147,9 @@ export function renderIncidentPage(incident, componentNames) {
       resolved && fact('Lasted', lastedFor(incident)),
       fact('Affects', affected ?? 'All services'),
     ),
-    h('section', { class: 'incident-timeline' },
+    h('section', { class: 'incident-timeline', dataset: { state: resolved ? 'operational' : incidentState(incident) } },
       h('h2', { class: 'section-title' }, 'Updates'),
-      updateList(incident.updates),
+      updateList(incident.updates, { markLatest: !resolved }),
     ),
   ];
 }
