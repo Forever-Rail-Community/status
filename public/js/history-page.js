@@ -2,7 +2,7 @@
 import { renderChrome } from './chrome.js';
 import { getJson } from './data.js';
 import { byId, h } from './dom.js';
-import { componentNameMap, renderIncidentHistory } from './incidents-view.js';
+import { renderIncidentHistory } from './incidents-view.js';
 
 const container = byId('history');
 
@@ -24,7 +24,7 @@ async function start() {
     return;
   }
   container.replaceChildren(
-    ...renderIncidentHistory(status.incidents.recent, componentNameMap(status.groups), status.page.historyDays),
+    ...renderIncidentHistory(status.incidents.recent, status.page.historyDays),
   );
 }
 

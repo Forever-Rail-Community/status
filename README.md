@@ -8,9 +8,11 @@ status and daily uptime from HetrixTools, plus incidents that admins post from a
 status.config.js       ← groups, components, title, logo, header, footer
 public/                status page (index.html, styles.css, js/)
 public/history/        /history: resolved incidents by month
+public/incident/       /incidents/:id: one incident's page (vercel.json rewrites to it)
 public/admin/          admin page for incidents
 api/status.js          GET  live status + incidents        (CDN cache 60s)
 api/history.js         GET  daily uptime from HetrixTools  (CDN cache 1h)
+api/incident.js        GET  one incident, for its page      (CDN cache 30s)
 api/auth/*.js          Discord sign-in / sign-out
 api/admin/*.js         incident management (signed-in admins only)
 lib/announcements.js   Discord channel announcements (Components V2)
@@ -59,11 +61,13 @@ Then visit `/admin`, sign in with Discord, and post incidents.
 
 - `/`: live status, open incidents and uptime strips.
 - `/history`: resolved incidents from the last `historyDays`, grouped by month.
+- `/incidents/<id>`: an incident's own page with its full timeline. Linked from open
+  incidents on `/` and from `/history`. Needs `vercel.json` (it maps these URLs to one page).
 - Top right of the header: **History** (shown when incidents are set up), your
   `header.button`, and **Log in** → `/admin` (shown when admin sign-in is set up).
 - Footer: a **Light / Dark / Auto** switcher. Each visitor's choice is remembered in their
-  browser and wins over the `theme` setting; it applies before the page draws, and the
-  admin page follows it too.
+  browser and wins over the `theme` setting, and it applies before the page draws.
+  `/admin` has the same switcher.
 
 ## Discord announcements
 
@@ -73,7 +77,7 @@ posting an incident or an update also posts it to that channel. No bot is needed
 
 - Messages use Discord's **Components V2** layout: a sidebar coloured by impact (green once
   resolved), the title, status, the update text, affected components, a timestamp shown in
-  each reader's timezone, and a link to the status page.
+  each reader's timezone, and a link to the incident's page.
 - Each new incident and each update is its own message, so people get notified.
 - **Announce in Discord** on the admin forms (ticked by default) lets you skip a post,
   e.g. for a typo fix. Editing details or deleting an incident never posts.

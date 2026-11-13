@@ -27,7 +27,7 @@
 
   font-family: "Inter var", Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   font-feature-settings: "cv11", "ss01";
-  font-size: 15px;
+  font-size: 16px; /* base size: every rem value scales from this */
 }
 
 * { box-sizing: border-box; }
@@ -157,7 +157,7 @@ a { color: inherit; }
 
 .banner-title {
   margin: 0;
-  font-size: 0.9375rem;
+  font-size: 1rem;
   font-weight: 600;
 }
 
@@ -233,7 +233,7 @@ details[open] > summary > .chevron { transform: rotate(45deg); }
 
 .row-name {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -388,7 +388,19 @@ details[open] > summary .strip-compact { display: none; }
   background: color-mix(in srgb, var(--state) 12%, var(--surface));
 }
 
-.incident-title { margin: 0; font-size: 0.9375rem; font-weight: 600; }
+.incident-title { margin: 0; font-size: 1rem; font-weight: 600; }
+.incident-title a { text-decoration: none; }
+.incident-title a:hover { text-decoration: underline; }
+
+.incident-link {
+  justify-self: start;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.incident-link:hover { color: var(--text); }
 
 .incident-status {
   margin-left: auto;
@@ -402,19 +414,6 @@ details[open] > summary .strip-compact { display: none; }
 .incident-body p { margin: 0; }
 .incident-message { white-space: pre-line; font-size: 0.875rem; }
 .incident-meta { color: var(--muted); font-size: 0.75rem; }
-
-.incident-history > summary,
-.past-incident > summary { cursor: pointer; list-style: none; }
-.incident-history > summary::-webkit-details-marker,
-.past-incident > summary::-webkit-details-marker { display: none; }
-
-.incident-history > summary {
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.incident-history > summary:hover { color: var(--text); }
 
 .incident-updates {
   display: grid;
@@ -448,14 +447,18 @@ details[open] > summary .strip-compact { display: none; }
   background: var(--surface);
 }
 
-.past-incident + .past-incident { border-top: 1px solid var(--border); }
-
-.past-incident > summary {
+.past-incident {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 14px;
+  padding: 11px 14px;
+  text-decoration: none;
+  transition: background 0.15s;
 }
+
+.past-incident + .past-incident { border-top: 1px solid var(--border); }
+.past-incident:hover { background: var(--surface-2); }
+.past-list { overflow: hidden; }
 
 .past-title {
   min-width: 0;
@@ -473,8 +476,6 @@ details[open] > summary .strip-compact { display: none; }
   white-space: nowrap;
 }
 
-.past-body { display: grid; gap: 8px; padding: 0 14px 12px; }
-.past-body p { margin: 0; }
 
 .muted-note { margin: 0; color: var(--muted); font-size: 0.8125rem; }
 
@@ -532,6 +533,57 @@ details[open] > summary .strip-compact { display: none; }
 
 .footer-link { text-decoration: none; }
 .footer-link:hover { color: var(--text); }
+
+/* ---------- badges (status page and admin) ---------- */
+
+.badges { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--state) 15%, transparent);
+  color: var(--state);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ---------- incident page (/incidents/:id) ---------- */
+
+.incident-page { padding-top: 28px; }
+
+.back-links {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.back-links a { text-decoration: none; }
+.back-links a:hover { color: var(--text); }
+
+#incident { display: grid; gap: 24px; }
+
+.incident-page-head { display: grid; gap: 10px; }
+.incident-page-head .page-title { margin: 0; }
+
+.incident-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 14px;
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.incident-facts dt { color: var(--muted); font-size: 0.75rem; }
+.incident-facts dd { margin: 2px 0 0; font-size: 0.875rem; font-weight: 500; }
+
+.incident-timeline .incident-updates { gap: 16px; margin: 0; }
+.incident-timeline .incident-updates p { font-size: 0.875rem; }
 
 /* ---------- theme switcher (footer) ---------- */
 
@@ -605,6 +657,6 @@ details[open] > summary .strip-compact { display: none; }
   .row-aside { flex: 1 0 auto; justify-content: flex-end; }
   .group-body { padding-left: 12px; }
   .component-body { padding-left: 12px; }
-  .past-incident > summary { flex-wrap: wrap; }
+  .past-incident { flex-wrap: wrap; }
   .past-meta { margin-left: 0; flex-basis: 100%; }
 }

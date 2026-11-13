@@ -28,7 +28,7 @@ const incident = (fields = {}) => ({
 
 const names = new Map([['site', 'AGS Route']]);
 const payloadFor = (fields, isNew = false) =>
-  announcementPayload({ incident: incident(fields), isNew, names, pageUrl: 'https://status.example' });
+  announcementPayload({ incident: incident(fields), isNew, names, siteUrl: 'https://status.example' });
 const texts = (payload) => payload.components[0].components.filter((c) => c.type === 10).map((c) => c.content);
 
 // ---------- webhook URL ----------
@@ -63,7 +63,7 @@ test('payload content: title, status line, latest message, footer', () => {
   assert.equal(title, '## AGS route server unreachable');
   assert.equal(status, '**Identified** · Major outage');
   assert.equal(message, 'Restarting the AGS instance.');
-  assert.equal(footer, `-# Affects AGS Route · <t:${Date.parse('2026-11-13T20:30:00Z') / 1000}:f> · [Status page](https://status.example)`);
+  assert.equal(footer, `-# Affects AGS Route · <t:${Date.parse('2026-11-13T20:30:00Z') / 1000}:f> · [View incident](https://status.example/incidents/7)`);
 });
 
 test('new incidents say so; no components reads "All services"', () => {
@@ -83,7 +83,7 @@ test('sidebar colour follows impact, and turns green when resolved', () => {
 test('long titles and messages are truncated', () => {
   const long = incident({ title: 't'.repeat(500) });
   long.updates[0] = { ...long.updates[0], message: 'm'.repeat(5000) };
-  const [title, , message] = texts(announcementPayload({ incident: long, isNew: false, names, pageUrl: 'https://s' }));
+  const [title, , message] = texts(announcementPayload({ incident: long, isNew: false, names, siteUrl: 'https://s' }));
   assert.equal(title.length, '## '.length + 200);
   assert.equal(message.length, 1800);
   assert.ok(message.endsWith('…'));
@@ -117,7 +117,7 @@ const row = {
   updates: [{ id: 1, status: 'investigating', message: 'M', author: 'Dalton', createdAt: '2026-11-13T20:00:00Z' }],
 };
 const config = resolveConfig(baseConfig());
-const common = { config, id: 7, isNew: true, pageUrl: 'https://status.example' };
+const common = { config, id: 7, isNew: true, siteUrl: 'https://status.example' };
 
 test('announceIncident: off without a webhook, skipped when unticked', async () => {
   let called = false;

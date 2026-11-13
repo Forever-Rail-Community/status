@@ -30,7 +30,10 @@ const stubDb = { query: async () => [] };
 
 test('not configured → 503; not signed in → 401; missing database → 503', async () => {
   assert.equal((await routes(sessionHandlers, stubDb, {}).GET(request('GET', '/api/admin/session'))).status, 503);
-  assert.equal((await routes(sessionHandlers, stubDb).GET(request('GET', '/api/admin/session', { cookie: '' }))).status, 401);
+  const signedOut = await routes(sessionHandlers, stubDb).GET(request('GET', '/api/admin/session', { cookie: '' }));
+  assert.equal(signedOut.status, 401);
+  // The sign-in screen still gets the title and theme (public settings only).
+  assert.deepEqual((await signedOut.json()).page, { title: 'Test', theme: 'dark', accent: null });
   assert.equal((await routes(sessionHandlers, null).GET(request('GET', '/api/admin/session'))).status, 503);
 });
 
@@ -143,7 +146,7 @@ test('Discord: posting and updating announce; unticked skips; Discord down still
   assert.equal(sent[0].url.searchParams.get('with_components'), 'true');
   assert.equal(sent[0].body.flags, 1 << 15);
   assert.match(sent[0].body.components[0].components[1].content, /New incident/);
-  assert.match(sent[0].body.components[0].components[4].content, /\[Status page\]\(https:\/\/status\.example\)/);
+  assert.match(sent[0].body.components[0].components[4].content, new RegExp(`\\[View incident\\]\\(https://status\\.example/incidents/${id}\\)`));
 
   const skipped = await updates.POST(request('POST', `/api/admin/incident-updates?id=${id}`, {
     body: { status: 'identified', message: 'typo fix', announce: false },

@@ -1,10 +1,19 @@
 import { byId, h } from '../dom.js';
-import { applyTheme } from '../theme.js';
+import { applyTheme, renderThemeSwitcher } from '../theme.js';
 import { ApiError, api } from './api.js';
 import { incidentLists, messageView, newIncidentForm, signInView } from './views.js';
 
 const root = byId('admin');
 const actionsBar = byId('admin-actions');
+const footer = byId('admin-footer');
+
+// Used when the server couldn't send the site's settings (e.g. admin not configured).
+const FALLBACK_PAGE = { title: 'Status', theme: 'dark', accent: null };
+
+function applyPage(page) {
+  applyTheme(page);
+  footer.replaceChildren(renderThemeSwitcher(page));
+}
 
 let meta = null; // from /api/admin/session
 const listContainer = h('div', { class: 'admin-lists' });
@@ -48,6 +57,7 @@ async function start() {
   try {
     meta = await api.session();
   } catch (err) {
+    applyPage(err instanceof ApiError && err.data?.page ? err.data.page : FALLBACK_PAGE);
     if (err instanceof ApiError && err.status === 401) {
       root.replaceChildren(signInView(new URLSearchParams(location.search).get('error')));
     } else {
@@ -56,7 +66,7 @@ async function start() {
     return;
   }
 
-  applyTheme(meta.page);
+  applyPage(meta.page);
   document.title = `${meta.page.title} · Admin`;
   renderSignedIn(meta.user);
   history.replaceState(null, '', location.pathname); // drop ?error= after a good sign-in

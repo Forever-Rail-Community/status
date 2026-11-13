@@ -166,18 +166,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, .btn:focus-vi
   flex-wrap: wrap;
 }
 
-.badges { display: flex; gap: 6px; flex-wrap: wrap; }
-
-.badge {
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--state) 15%, transparent);
-  color: var(--state);
-  font-size: 0.75rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
 .timeline-list {
   display: grid;
   gap: 10px;

@@ -1,9 +1,10 @@
 // Admin API calls. Errors carry the HTTP status and the server's message.
 
 export class ApiError extends Error {
-  constructor(status, message) {
+  constructor(status, message, data) {
     super(message);
     this.status = status;
+    this.data = data; // the response body, e.g. page settings on a 401
   }
 }
 
@@ -15,7 +16,7 @@ async function request(method, url, body) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = res.status === 204 ? null : await res.json().catch(() => null);
-  if (!res.ok) throw new ApiError(res.status, data?.error ?? `Request failed (${res.status})`);
+  if (!res.ok) throw new ApiError(res.status, data?.error ?? `Request failed (${res.status})`, data);
   return data;
 }
 

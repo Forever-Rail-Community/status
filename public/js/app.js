@@ -24,7 +24,7 @@ const state = {
   status: null, // last good /api/status
   history: null, // last good /api/history (daily uptime)
   failed: false, // did the latest status refresh fail?
-  openKeys: new Set(), // expanded groups/components/incidents, kept across re-renders
+  openKeys: new Set(), // expanded groups/components, kept across re-renders
 };
 
 // ---------- rendering ----------
@@ -59,7 +59,7 @@ function renderStatus() {
   els.bannerTitle.textContent = OVERALL_LABELS[status.overall];
   els.bannerState.textContent = STATUS_LABELS[status.overall];
   els.activeIncidents.replaceChildren(
-    ...renderActiveIncidents(status.incidents?.active ?? [], componentNameMap(status.groups), openKeys),
+    ...renderActiveIncidents(status.incidents?.active ?? [], componentNameMap(status.groups)),
   );
   els.groups.replaceChildren(
     ...renderGroups(status.groups, { history, incidents, days: status.page.historyDays, openKeys }),
@@ -94,6 +94,7 @@ async function refreshHistory() {
 
 // ---------- start ----------
 
+// Keeps expanded groups/components open across refreshes.
 // `toggle` doesn't bubble, so listen in the capture phase.
 function rememberOpenState(container) {
   container.addEventListener('toggle', ({ target }) => {
@@ -104,7 +105,7 @@ function rememberOpenState(container) {
   }, true);
 }
 
-for (const container of [els.groups, els.activeIncidents]) rememberOpenState(container);
+rememberOpenState(els.groups);
 attachTooltip(els.groups);
 refreshStatus();
 refreshHistory();

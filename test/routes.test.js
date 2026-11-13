@@ -5,6 +5,7 @@ import assert from 'node:assert/strict';
 const files = {
   'api/status.js': ['GET'],
   'api/history.js': ['GET'],
+  'api/incident.js': ['GET'],
   'api/auth/login.js': ['GET'],
   'api/auth/callback.js': ['GET'],
   'api/auth/logout.js': ['POST'],

@@ -1,4 +1,5 @@
-// Public incident cards: open incidents under the banner, resolved ones at the bottom.
+// Incident views: open-incident cards (status page), the month list (/history),
+// and an incident's own page (/incidents/:id). Cards and list entries link to that page.
 
 import { h } from './dom.js';
 import {
@@ -9,10 +10,19 @@ import {
   formatDuration,
 } from './format.js';
 
-function affects(incident, componentNames) {
+export const incidentUrl = (id) => `/incidents/${id}`;
+
+/** 'SE Route, AGS Route', or null when the incident affects the whole page. */
+function affectedNames(incident, componentNames) {
   if (incident.components.length === 0) return null;
-  return `Affects ${incident.components.map((id) => componentNames.get(id) ?? id).join(', ')}`;
+  return incident.components.map((id) => componentNames.get(id) ?? id).join(', ');
 }
+
+/** Colour of an incident: blue while maintenance is only scheduled, else its impact. */
+const incidentState = (incident) => (incident.status === 'scheduled' ? 'maintenance' : incident.impact);
+
+const lastedFor = (incident) =>
+  formatDuration(Date.parse(incident.resolvedAt) - Date.parse(incident.createdAt));
 
 function updateList(updates) {
   return h('ol', { class: 'incident-updates' },
@@ -28,14 +38,15 @@ function updateList(updates) {
   );
 }
 
-function activeCard(incident, componentNames, openKeys) {
-  const [latest, ...earlier] = incident.updates;
-  const state = incident.status === 'scheduled' ? 'maintenance' : incident.impact;
-  const historyKey = `ih:${incident.id}`;
+// ---------- status page: open incidents ----------
 
-  return h('article', { class: 'incident', dataset: { state } },
+function activeCard(incident, componentNames) {
+  const [latest] = incident.updates;
+  const affected = affectedNames(incident, componentNames);
+
+  return h('article', { class: 'incident', dataset: { state: incidentState(incident) } },
     h('header', { class: 'incident-head' },
-      h('h3', { class: 'incident-title' }, incident.title),
+      h('h3', { class: 'incident-title' }, h('a', { href: incidentUrl(incident.id) }, incident.title)),
       h('span', { class: 'incident-status' }, INCIDENT_STATUS_LABELS[incident.status]),
     ),
     h('div', { class: 'incident-body' },
@@ -44,31 +55,29 @@ function activeCard(incident, componentNames, openKeys) {
         [
           IMPACT_LABELS[incident.impact],
           latest && `updated ${formatAgo(Date.parse(latest.createdAt))}`,
-          affects(incident, componentNames),
+          affected && `Affects ${affected}`,
         ].filter(Boolean).join(' · '),
       ),
-      earlier.length > 0 && h('details', { class: 'incident-history', 'data-key': historyKey, open: openKeys.has(historyKey) },
-        h('summary', {}, `Earlier updates (${earlier.length})`),
-        updateList(earlier),
+      h('a', { class: 'incident-link', href: incidentUrl(incident.id) },
+        incident.updates.length > 1 ? `View incident (${incident.updates.length} updates)` : 'View incident',
       ),
     ),
   );
 }
 
-function pastItem(incident, componentNames) {
-  const lasted = formatDuration(Date.parse(incident.resolvedAt) - Date.parse(incident.createdAt));
-  const affected = affects(incident, componentNames);
-  return h('details', { class: 'past-incident', dataset: { state: incident.impact } },
-    h('summary', {},
-      h('span', { class: 'past-title' }, incident.title),
-      h('span', { class: 'past-meta' }, `${formatDateTime(incident.resolvedAt)} · lasted ${lasted}`),
-    ),
-    h('div', { class: 'past-body' },
-      affected && h('p', { class: 'incident-meta' }, affected),
-      updateList(incident.updates),
-    ),
+export const componentNameMap = (groups) =>
+  new Map(groups.flatMap((g) => g.components.map((c) => [c.id, c.name])));
+
+export const renderActiveIncidents = (incidents, componentNames) =>
+  incidents.map((i) => activeCard(i, componentNames));
+
+// ---------- /history ----------
+
+const pastItem = (incident) =>
+  h('a', { class: 'past-incident', href: incidentUrl(incident.id), dataset: { state: incident.impact } },
+    h('span', { class: 'past-title' }, incident.title),
+    h('span', { class: 'past-meta' }, `${formatDateTime(incident.resolvedAt)} · lasted ${lastedFor(incident)}`),
   );
-}
 
 const monthFormat = new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' });
 
@@ -83,14 +92,7 @@ function byMonth(incidents) {
   return months;
 }
 
-export const componentNameMap = (groups) =>
-  new Map(groups.flatMap((g) => g.components.map((c) => [c.id, c.name])));
-
-export const renderActiveIncidents = (incidents, componentNames, openKeys) =>
-  incidents.map((i) => activeCard(i, componentNames, openKeys));
-
-/** Content of the /history page. */
-export function renderIncidentHistory(incidents, componentNames, days) {
+export function renderIncidentHistory(incidents, days) {
   const intro = h('p', { class: 'muted-note' },
     `Resolved incidents from the last ${days} days. Ongoing incidents are shown on the status page.`);
 
@@ -102,8 +104,38 @@ export function renderIncidentHistory(incidents, componentNames, days) {
     ...[...byMonth(incidents)].map(([month, items]) =>
       h('section', { class: 'history-month' },
         h('h2', { class: 'section-title' }, month),
-        h('div', { class: 'past-list' }, items.map((i) => pastItem(i, componentNames))),
+        h('div', { class: 'past-list' }, items.map(pastItem)),
       ),
+    ),
+  ];
+}
+
+// ---------- /incidents/:id ----------
+
+const fact = (label, value) => h('div', {}, h('dt', {}, label), h('dd', {}, value));
+
+export function renderIncidentPage(incident, componentNames) {
+  const resolved = incident.resolvedAt !== null;
+  const affected = affectedNames(incident, componentNames);
+
+  return [
+    h('header', { class: 'incident-page-head' },
+      h('h1', { class: 'page-title' }, incident.title),
+      h('div', { class: 'badges' },
+        h('span', { class: 'badge', dataset: { state: incidentState(incident) } }, IMPACT_LABELS[incident.impact]),
+        h('span', { class: 'badge', dataset: { state: resolved ? 'operational' : incidentState(incident) } },
+          INCIDENT_STATUS_LABELS[incident.status]),
+      ),
+    ),
+    h('dl', { class: 'incident-facts' },
+      fact('Started', formatDateTime(incident.createdAt)),
+      resolved && fact('Resolved', formatDateTime(incident.resolvedAt)),
+      resolved && fact('Lasted', lastedFor(incident)),
+      fact('Affects', affected ?? 'All services'),
+    ),
+    h('section', { class: 'incident-timeline' },
+      h('h2', { class: 'section-title' }, 'Updates'),
+      updateList(incident.updates),
     ),
   ];
 }
