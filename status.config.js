@@ -57,8 +57,8 @@ export default {
       description: 'Multiplayer route servers',
       components: [
         // HetrixTools "Service" monitors checking each route's TCP port.
-        { id: 'run8-se', name: 'SE Route', monitor: 'REPLACE_WITH_MONITOR_ID', description: 'Port 15199' },
-        { id: 'run8-ags', name: 'AGS Route', monitor: 'REPLACE_WITH_MONITOR_ID', description: 'Port 15197' },
+        { id: 'frc-run8', name: 'Run8', monitor: 'd71b93dd7d6de8cc07143d4f4fc48a12', description: 'The server that hosts the communities Run8 routes.' },
+        { id: 'frc-railroader', name: 'Railroader', monitor: 'a4060a4edb61bed4a7b5243aeb5b8da1', description: 'The server that hosts the communities Railroader routes.' },
         { id: 'run8-pa', name: 'PA Route', monitor: 'REPLACE_WITH_MONITOR_ID', description: 'Port 15198' },
       ],
     },
