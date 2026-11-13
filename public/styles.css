@@ -305,7 +305,9 @@ details[open] > summary .strip-compact { display: none; }
   background: var(--surface);
 }
 
-.group-body { padding: 0 0 10px 22px; }
+/* Right padding matches the header row's, so the strip and nested cards end where its text does. */
+.group-body { padding: 0 12px 12px 22px; }
+.group-body > .timeline { padding-right: 0; }
 
 .children {
   display: grid;
@@ -316,7 +318,6 @@ details[open] > summary .strip-compact { display: none; }
 }
 
 .component {
-  margin-right: -1px;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface-2);
