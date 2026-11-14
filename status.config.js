@@ -32,7 +32,7 @@ export default {
     showTitle: true,
 
     // Image in public/ (e.g. '/logo.png') or a full https:// URL. null = no logo.
-    logo: { src: '/images/frc-logo-purple.png', alt: 'Forever Rail Community logo in brand purple', height: 28, href: 'https://status.foreverrail.com' },
+    logo: { src: '/images/frc-logo-orange-text-brandmark.png', alt: 'Forever Rail Community logo in brand purple', height: 28, href: 'https://status.foreverrail.com' },
     // logo: { src: '/logo.png', alt: 'Forever Rail', height: 28, href: 'https://your-site' },
 
     // Pill links in the middle of the header.
