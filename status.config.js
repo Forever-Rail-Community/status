@@ -29,7 +29,7 @@ export default {
   historyDays: 30,
 
   header: {
-    showTitle: true,
+    showTitle: false,
 
     // Image in public/ (e.g. '/logo.png') or a full https:// URL. null = no logo.
     logo: { src: '/images/frc-logo-orange-text-brandmark.png', alt: 'Forever Rail Community logo in brand purple', height: 28, href: 'https://status.foreverrail.com' },
