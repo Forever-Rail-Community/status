@@ -16,7 +16,7 @@ export default {
   title: 'Forever Rail Community Status',
 
   // Optional message inside the status banner. '' to hide.
-  notice: 'Live status of Forever Rail servers and services. Having trouble? Let us know in Discord.',
+  notice: 'This page includes significate information on outages that are affecting Forever Rail Communities infrastructure. Having trouble? Let us know in Discord!',
 
   // 'dark' | 'light' | 'auto' (auto follows the visitor's system setting)
   theme: 'auto',
@@ -58,7 +58,7 @@ export default {
       components: [
         // HetrixTools "Service" monitors checking each route's TCP port.
         { id: 'frc-run8', name: 'Run8', monitor: 'd71b93dd7d6de8cc07143d4f4fc48a12', description: 'Server that hosts and provides Run8 instances for community use.' },
-        { id: 'frc-railroader', name: 'Railroader', monitor: 'a4060a4edb61bed4a7b5243aeb5b8da1', description: 'Server that hosts and provides Railroader instances for community use.' },
+        { id: 'frc-railroader', name: 'Railroader', monitor: 'a4060a4edb61bed4a7b5243aeb5b8da1', description: 'Server that hosts and provides Railroader instances for community use. Note: This is currently not available to the community at this time as it is still going through testing.' },
       ],
     },
     {
