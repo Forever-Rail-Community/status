@@ -16,7 +16,7 @@ export default {
   title: 'Forever Rail Community Status',
 
   // Optional message inside the status banner. '' to hide.
-  notice: 'This page reports issues with Forever Rail Community’s servers and services that affect joining or playing. Having trouble? Let us know in Discord!',
+  notice: 'This page provides real-time updates on the status of Forever Rail Community’s servers and services, including any issues that may affect normal activity. If you’re experiencing problems, please let us know in Discord!',
 
   // 'dark' | 'light' | 'auto' (auto follows the visitor's system setting)
   theme: 'auto',
