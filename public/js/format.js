@@ -22,7 +22,7 @@ export function formatDuration(ms) {
 }
 
 export const OVERALL_LABELS = {
-  operational: 'All systems operational',
+  operational: 'All systems are go!',
   degraded: 'Some systems are degraded',
   partial_outage: 'Partial system outage',
   major_outage: 'Major system outage',
