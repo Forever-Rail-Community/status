@@ -23,8 +23,18 @@ const incidentState = (incident) => (incident.status === 'scheduled' ? 'maintena
 const lastedFor = (incident) =>
   formatDuration(Date.parse(incident.resolvedAt) - Date.parse(incident.createdAt));
 
-function updateEntry(update, isLatest) {
-  return h('li', { class: 'update' },
+/**
+ * Colour of one update in the timeline: green once resolved, blue for maintenance steps,
+ * otherwise the incident's impact. So a resolved incident still shows how bad it was.
+ */
+function updateState(status, impact) {
+  if (status === 'resolved') return 'operational';
+  if (status === 'scheduled' || status === 'in_progress') return 'maintenance';
+  return impact;
+}
+
+function updateEntry(update, impact, isLatest) {
+  return h('li', { class: 'update', dataset: { state: updateState(update.status, impact) } },
     h('div', { class: 'update-head' },
       h('strong', {}, INCIDENT_STATUS_LABELS[update.status]),
       isLatest && h('span', { class: 'latest-tag' }, 'Latest'),
@@ -35,8 +45,8 @@ function updateEntry(update, isLatest) {
 }
 
 /** Updates, newest first. `markLatest` tags the first one (only while the incident is open). */
-const updateList = (updates, { markLatest = false } = {}) =>
-  h('ol', { class: 'updates' }, updates.map((u, i) => updateEntry(u, markLatest && i === 0)));
+const updateList = (updates, impact, { markLatest = false } = {}) =>
+  h('ol', { class: 'updates' }, updates.map((u, i) => updateEntry(u, impact, markLatest && i === 0)));
 
 // ---------- status page: open incidents ----------
 
@@ -67,9 +77,9 @@ function activeCard(incident, componentNames, expanded) {
     ),
     h('div', { class: 'incident-body' },
       affected.length > 0 && chips(affected),
-      latest && updateList([latest], { markLatest: true }),
+      latest && updateList([latest], incident.impact, { markLatest: true }),
       earlier.length > 0 && h('p', { class: 'updates-divider' }, 'Earlier updates'),
-      earlier.length > 0 && updateList(earlier.slice(0, EARLIER_SHOWN)),
+      earlier.length > 0 && updateList(earlier.slice(0, EARLIER_SHOWN), incident.impact),
       earlier.length > EARLIER_SHOWN &&
         h('a', { class: 'incident-link', href }, `View all ${incident.updates.length} updates`),
     ),
@@ -147,9 +157,9 @@ export function renderIncidentPage(incident, componentNames) {
       resolved && fact('Lasted', lastedFor(incident)),
       fact('Affects', affected ?? 'All services'),
     ),
-    h('section', { class: 'incident-timeline', dataset: { state: resolved ? 'operational' : incidentState(incident) } },
+    h('section', { class: 'incident-timeline' },
       h('h2', { class: 'section-title' }, 'Updates'),
-      updateList(incident.updates, { markLatest: !resolved }),
+      updateList(incident.updates, incident.impact, { markLatest: !resolved }),
     ),
   ];
 }
