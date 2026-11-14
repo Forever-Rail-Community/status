@@ -3,6 +3,7 @@ import { getJson } from './data.js';
 import { byId } from './dom.js';
 import { OVERALL_LABELS, STATUS_LABELS, formatAgo } from './format.js';
 import { createExpandedState } from './expanded.js';
+import { statusIcon } from './icons.js';
 import { componentNameMap, renderActiveIncidents, takesOverBanner } from './incidents-view.js';
 import { renderGroups } from './render.js';
 import { attachTooltip } from './tooltip.js';
@@ -13,6 +14,7 @@ const CLOCK_TICK_MS = 15_000;
 
 const els = {
   banner: byId('banner'),
+  bannerIcon: byId('banner-icon'),
   bannerTitle: byId('banner-title'),
   bannerState: byId('banner-state'),
   bannerNotice: byId('banner-notice'),
@@ -38,6 +40,12 @@ function renderPageChrome(status) {
   els.bannerNotice.hidden = !status.page.notice;
 }
 
+function setBannerState(state, title) {
+  els.banner.dataset.state = state;
+  els.bannerIcon.replaceChildren(statusIcon(state));
+  els.bannerTitle.textContent = title;
+}
+
 function renderUpdated() {
   const { status, failed } = state;
   if (!status) return;
@@ -49,8 +57,8 @@ function renderStatus() {
   const { status, history } = state;
 
   if (!status) {
-    els.banner.dataset.state = 'unknown';
-    els.bannerTitle.textContent = 'Unable to load status right now';
+    // Still loading (e.g. the uptime history arrived first): keep the spinner until a load fails.
+    if (state.failed) setBannerState('unknown', 'Unable to load status right now');
     return;
   }
 
@@ -60,8 +68,7 @@ function renderStatus() {
 
   // Like Railway: while an incident is open, its card replaces the status banner.
   els.banner.hidden = open.some(takesOverBanner);
-  els.banner.dataset.state = status.overall;
-  els.bannerTitle.textContent = OVERALL_LABELS[status.overall];
+  setBannerState(status.overall, OVERALL_LABELS[status.overall]);
   els.bannerState.textContent = STATUS_LABELS[status.overall];
   els.activeIncidents.replaceChildren(
     ...renderActiveIncidents(open, componentNameMap(status.groups), expanded),
@@ -100,6 +107,7 @@ async function refreshHistory() {
 // ---------- start ----------
 
 for (const container of [els.groups, els.activeIncidents]) expanded.track(container);
+els.bannerIcon.replaceChildren(statusIcon('loading'));
 attachTooltip(els.groups);
 refreshStatus();
 refreshHistory();

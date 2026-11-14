@@ -2,6 +2,7 @@
 // and an incident's own page (/incidents/:id). Cards and list entries link to that page.
 
 import { h } from './dom.js';
+import { statusIcon } from './icons.js';
 import {
   IMPACT_LABELS,
   INCIDENT_STATUS_LABELS,
@@ -71,6 +72,7 @@ function activeCard(incident, componentNames, expanded) {
   },
     h('summary', { class: 'incident-head' },
       h('span', { class: 'chevron', 'aria-hidden': 'true' }),
+      statusIcon(incidentState(incident)),
       h('h2', { class: 'incident-title' }, incident.title),
       h('span', { class: 'incident-impact' }, impact),
       h('a', { class: 'incident-open', href, title: 'Open incident page', 'aria-label': `Open incident page: ${incident.title}` }, '↗'),
