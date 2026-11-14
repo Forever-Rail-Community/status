@@ -62,10 +62,19 @@ export default {
       ],
     },
     {
-      name: 'Community services',
-      description: "Other services that Forever Rail uses to manage it's community externally.",
+      name: 'External support',
+      description: "",
       components: [
         { id: 'discord', name: 'Discord server', status: 'operational' }
+      ],
+    },
+    {
+      name: 'External services',
+      description: "",
+      components: [
+        { id: 'vercel', name: 'Vercel', status: 'operational' },
+        { id: 'cloudflare', name: 'Cloudflare', status: 'operational' },
+        { id: 'neon', name: 'Neon', status: 'operational' },
       ],
     },
   ],
