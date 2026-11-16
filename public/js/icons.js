@@ -12,6 +12,7 @@ const SHAPES = {
   wrench:
     '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/>',
   'circle-help': '<circle cx="12" cy="12" r="10"/><path d="M9 9.5a3 2.5 0 016 0c0 2-2 2-3 3.5"/><path d="M12 17h.01"/>',
+  'circle-pause': '<circle cx="12" cy="12" r="10"/><line x1="10" x2="10" y1="15" y2="9"/><line x1="14" x2="14" y1="15" y2="9"/>',
   'loader-circle': '<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
 };
 
@@ -22,6 +23,7 @@ const ICON_FOR_STATE = {
   partial_outage: 'circle-alert',
   major_outage: 'circle-x',
   maintenance: 'wrench',
+  paused: 'circle-pause',
   unknown: 'circle-help',
   loading: 'loader-circle',
 };

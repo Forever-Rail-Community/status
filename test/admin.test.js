@@ -45,6 +45,7 @@ test('session lists components and choices for the form', async () => {
   assert.deepEqual(body.user, { id: '111', name: 'Dalton' });
   assert.deepEqual(body.groups[0].components.map((c) => c.id), ['site', 'support']);
   assert.ok(body.impacts.includes('major_outage'));
+  assert.deepEqual(body.templates, []);
   assert.equal(body.discord, false);
 
   const withWebhook = { ...authEnv, DISCORD_WEBHOOK_URL: 'https://discord.com/api/webhooks/1/tok' };

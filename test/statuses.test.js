@@ -6,7 +6,9 @@ test('worstStatus ignores paused/unknown', () => {
   assert.equal(worstStatus(['operational', 'degraded']), 'degraded');
   assert.equal(worstStatus(['operational', 'maintenance']), 'maintenance');
   assert.equal(worstStatus(['operational', 'paused', 'unknown']), 'operational');
-  assert.equal(worstStatus(['paused']), 'unknown');
+  assert.equal(worstStatus(['paused']), 'paused'); // all switched off: "Not running"
+  assert.equal(worstStatus(['paused', 'unknown']), 'paused');
+  assert.equal(worstStatus(['unknown']), 'unknown');
   assert.equal(worstStatus([]), 'unknown');
 });
 

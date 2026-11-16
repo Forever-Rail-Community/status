@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Status</title>
+  <!-- build:head -->
   <link rel="preconnect" href="https://rsms.me/">
   <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
   <link rel="stylesheet" href="/styles.css">
@@ -25,7 +26,17 @@
 
     <div class="incidents" id="active-incidents"></div>
 
-    <p class="updated" id="updated"></p>
+    <div class="meta-row">
+      <details class="explainer">
+        <summary>How is uptime calculated?</summary>
+        <div class="explainer-body">
+          <p><strong>Monitored services</strong> (websites, servers): uptime comes from HetrixTools, which checks each one around the clock from its monitoring locations. A day's percentage is the share of those checks that succeeded.</p>
+          <p><strong>Everything else</strong> (no automatic monitor): uptime comes from our posted incidents. Time under a partial or major outage counts as down; degraded performance and maintenance don't.</p>
+          <p>Each bar is one day, from midnight to midnight <span id="explainer-tz">UTC</span>. Uptime only counts from the day monitoring began.</p>
+        </div>
+      </details>
+      <p class="updated" id="updated"></p>
+    </div>
     <hr class="divider">
 
     <div class="groups" id="groups"></div>

@@ -68,3 +68,27 @@ test('explicit ids win over the name slug', () => {
   assert.equal(config.groups[0].components[0].id, 'run8-se');
   assert.equal(slugify('Run8 – SE Route!'), 'run8-se-route');
 });
+
+test('site, timezone and incident templates', () => {
+  const config = resolveConfig({
+    ...baseConfig(),
+    site: { url: 'https://status.example.com/', description: 'D', image: '/images/p.png', favicon: 'https://cdn.example.com/f.png' },
+    timezone: 'America/Chicago',
+    incidentTemplates: [{ name: 'Site down', title: 'Website unreachable', components: ['site'] }],
+  });
+  assert.deepEqual(config.site, { url: 'https://status.example.com', description: 'D', image: '/images/p.png', favicon: 'https://cdn.example.com/f.png' });
+  assert.equal(config.timezone, 'America/Chicago');
+  assert.deepEqual(config.incidentTemplates, [
+    { name: 'Site down', title: 'Website unreachable', impact: 'major_outage', components: ['site'], message: '' },
+  ]);
+  assert.equal(resolveConfig(baseConfig()).timezone, 'UTC');
+});
+
+test('rejects bad site, timezone and template settings', () => {
+  rejects({ site: { url: 'status.example.com' } }, /site\.url/);
+  rejects({ site: { image: 'images/p.png' } }, /site\.image/);
+  rejects({ timezone: 'Central' }, /timezone/);
+  rejects({ incidentTemplates: [{ name: 'x' }] }, /incidentTemplates\[0\]\.title/);
+  rejects({ incidentTemplates: [{ name: 'x', title: 'y', impact: 'bad' }] }, /incidentTemplates\[0\]\.impact/);
+  rejects({ incidentTemplates: [{ name: 'x', title: 'y', components: ['ghost'] }] }, /unknown component ids: ghost/);
+});

@@ -20,6 +20,7 @@ const els = {
   bannerNotice: byId('banner-notice'),
   activeIncidents: byId('active-incidents'),
   updated: byId('updated'),
+  explainerTz: byId('explainer-tz'),
   groups: byId('groups'),
 };
 
@@ -38,12 +39,30 @@ function renderPageChrome(status) {
   renderChrome(status, { current: 'status' });
   els.bannerNotice.textContent = status.page.notice ?? '';
   els.bannerNotice.hidden = !status.page.notice;
+  els.explainerTz.textContent = status.page.timezone;
 }
 
 function setBannerState(state, title) {
   els.banner.dataset.state = state;
   els.bannerIcon.replaceChildren(statusIcon(state));
   els.bannerTitle.textContent = title;
+}
+
+// The groups re-render every minute; keep a keyboard user's place in a strip across that.
+function stripPlace() {
+  const strip = document.activeElement?.closest?.('.strip[tabindex]');
+  const key = strip?.closest('[data-key]')?.dataset.key;
+  if (!key) return null;
+  return { key, index: [...strip.children].indexOf(strip.querySelector('.seg-active')) };
+}
+
+function restoreStripPlace(place) {
+  if (!place) return;
+  const strip = els.groups.querySelector(`[data-key="${CSS.escape(place.key)}"] .strip[tabindex]`);
+  if (!strip?.lastElementChild) return;
+  const segment = strip.children[Math.min(place.index, strip.children.length - 1)] ?? strip.lastElementChild;
+  segment.classList.add('seg-active'); // the tooltip's focus handler picks this up
+  strip.focus();
 }
 
 function renderUpdated() {
@@ -73,9 +92,13 @@ function renderStatus() {
   els.activeIncidents.replaceChildren(
     ...renderActiveIncidents(open, componentNameMap(status.groups), expanded),
   );
+  const place = stripPlace();
   els.groups.replaceChildren(
-    ...renderGroups(status.groups, { history, incidents, days: status.page.historyDays, expanded }),
+    ...renderGroups(status.groups, {
+      history, incidents, expanded, days: status.page.historyDays, timeZone: status.page.timezone,
+    }),
   );
+  restoreStripPlace(place);
   renderUpdated();
 }
 

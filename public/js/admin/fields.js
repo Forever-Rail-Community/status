@@ -53,6 +53,31 @@ export const announceCheckbox = (discordEnabled) =>
   discordEnabled &&
   h('label', { class: 'check' }, h('input', { type: 'checkbox', name: 'announce', checked: true }), 'Announce in Discord');
 
+/**
+ * "Start from template" picker (from incidentTemplates in status.config.js). Choosing one
+ * fills the form's title, impact, components and message; nothing is rendered without templates.
+ */
+export function templatePicker(templates) {
+  if (templates.length === 0) return null;
+  const picker = h('select', { 'aria-label': 'Start from template' },
+    h('option', { value: '' }, 'Blank incident'),
+    templates.map((t, i) => h('option', { value: String(i) }, t.name)),
+  );
+  picker.addEventListener('change', () => {
+    const template = templates[Number(picker.value)];
+    if (template) applyTemplate(picker.form, template);
+  });
+  return field('Start from template', picker, 'Fills in the form below; edit anything before posting.');
+}
+
+function applyTemplate(form, template) {
+  const chosen = new Set(template.components);
+  form.elements.title.value = template.title;
+  form.elements.impact.value = template.impact;
+  form.elements.message.value = template.message;
+  for (const box of form.querySelectorAll('[name="components"]')) box.checked = chosen.has(box.value);
+}
+
 /** Form values as a plain object; checkbox groups become arrays, the announce box a boolean. */
 export function formValues(form) {
   const data = new FormData(form);

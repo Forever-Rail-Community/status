@@ -7,7 +7,7 @@ export const STATUS_LABELS = {
   partial_outage: 'Partial outage',
   major_outage: 'Major outage',
   maintenance: 'Under maintenance',
-  paused: 'Paused',
+  paused: 'Not running', // monitor paused or disabled in HetrixTools, e.g. a route that's switched off
   unknown: 'Unknown',
   none: 'No data',
 };

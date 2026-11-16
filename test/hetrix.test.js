@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fetchAllMonitors, HetrixError, normalizeMonitor, normalizeReportDays } from '../lib/hetrix.js';
+import { fetchAllMonitors, fetchDailyUptime, HetrixError, normalizeMonitor, normalizeReportDays } from '../lib/hetrix.js';
 import { readFileSync } from 'node:fs';
 import { fakeHetrix } from './helpers.js';
 
@@ -78,4 +78,21 @@ test('report days: sorted by date; missing percentage is null; empty report is [
     { date: '2026-11-13', uptime: 99.5 },
   ]);
   assert.deepEqual(normalizeReportDays({}), []);
+});
+
+test('daily uptime asks for the page time zone offset, except UTC', async (t) => {
+  const urls = [];
+  const fetchImpl = async (url) => {
+    urls.push(new URL(url));
+    return Response.json({ timezone: 'UTC+00:00', data: {} });
+  };
+  const warn = t.mock.method(console, 'warn', () => {});
+
+  await fetchDailyUptime('m1', { apiKey: 'k', days: 30, fetchImpl });
+  assert.equal(urls[0].searchParams.has('timezone'), false);
+  assert.equal(warn.mock.callCount(), 0);
+
+  await fetchDailyUptime('m1', { apiKey: 'k', days: 30, offset: '-06:00', fetchImpl });
+  assert.equal(urls[1].searchParams.get('timezone'), '-06:00');
+  assert.equal(warn.mock.callCount(), 1); // answered in UTC: logged so a shifted strip is explainable
 });

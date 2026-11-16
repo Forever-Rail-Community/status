@@ -22,11 +22,12 @@ export function formatDuration(ms) {
 }
 
 export const OVERALL_LABELS = {
-  operational: 'All systems are go!',
+  operational: 'All systems operational',
   degraded: 'Some systems are degraded',
   partial_outage: 'Partial system outage',
   major_outage: 'Major system outage',
   maintenance: 'Maintenance in progress',
+  paused: 'Nothing is running right now',
   unknown: 'Status unknown',
 };
 

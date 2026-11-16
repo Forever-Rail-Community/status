@@ -4,29 +4,24 @@
 
 import { h } from './dom.js';
 import { STATUS_LABELS, average, formatDayRange, formatUptime, uptimeLevel } from './format.js';
+import { addDays, startOfDay, zonedDate } from './timezone.js';
 
-const DAY_MS = 86_400_000;
 const LEVEL_ORDER = ['none', 'operational', 'maintenance', 'degraded', 'partial_outage', 'major_outage'];
 const QUIET_LEVELS = new Set(['operational', 'none']);
 
 const worseLevel = (a, b) => (LEVEL_ORDER.indexOf(b) > LEVEL_ORDER.indexOf(a) ? b : a);
 
-const isoDate = (d) =>
-  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+// Days are calendar days in the page's time zone (status.config.js `timezone`), the
+// same days HetrixTools reports, whatever time zone the visitor is in.
 
-/** The last `count` calendar days in the viewer's timezone, oldest first. */
-export function lastDates(count, now = new Date()) {
-  return Array.from({ length: count }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (count - 1 - i));
-    return isoDate(d);
-  });
+/** The last `count` calendar days in `timeZone`, oldest first. */
+export function lastDates(count, timeZone, now = Date.now()) {
+  const today = zonedDate(now, timeZone);
+  return Array.from({ length: count }, (_, i) => addDays(today, i - (count - 1)));
 }
 
-function dayBounds(date) {
-  const [y, m, d] = date.split('-').map(Number);
-  const start = new Date(y, m - 1, d).getTime();
-  return [start, start + DAY_MS];
-}
+/** [start, end) of a day in epoch ms; 23 or 25 hours long on daylight-saving days. */
+const dayBounds = (date, timeZone) => [startOfDay(date, timeZone), startOfDay(addDays(date, 1), timeZone)];
 
 function touchedDay(incident, [dayStart, dayEnd], now) {
   const start = Date.parse(incident.createdAt);
@@ -39,13 +34,14 @@ function touchedDay(incident, [dayStart, dayEnd], now) {
  * @param days       daily uptime from /api/history (monitor components), or null
  * @param incidents  incidents affecting this component (scheduled-only ones excluded)
  * @param baseLevel  level for a day with no uptime data: 'none' for monitors, 'operational' for manual
+ * @param timeZone   the page's time zone (days run midnight to midnight there)
  */
-export function componentSlots({ days, incidents, axis, baseLevel, now = Date.now() }) {
+export function componentSlots({ days, incidents, axis, baseLevel, timeZone, now = Date.now() }) {
   const uptimeByDate = new Map((days ?? []).map((d) => [d.date, d.uptime]));
 
   return axis.map((date) => {
     const uptime = uptimeByDate.get(date) ?? null;
-    const bounds = dayBounds(date);
+    const bounds = dayBounds(date, timeZone);
     const touching = incidents.filter((i) => touchedDay(i, bounds, now));
     const level = touching.reduce(
       (worst, i) => worseLevel(worst, i.impact),
@@ -69,6 +65,35 @@ export function groupSlots(slotLists) {
 }
 
 export const rangeUptime = (slots) => average(slots.map((s) => s.uptime));
+
+// Incident impacts that count as downtime for components without a monitor.
+const DOWNTIME_IMPACTS = new Set(['partial_outage', 'major_outage']);
+
+/**
+ * Uptime % for a component with no monitor: the share of time since the start of
+ * `fromDate` (in `timeZone`) not covered by an outage incident. Degraded performance and
+ * maintenance don't count as down. Overlapping incidents are only counted once.
+ */
+export function incidentUptime(incidents, fromDate, timeZone, now = Date.now()) {
+  const windowStart = startOfDay(fromDate, timeZone);
+  const spans = incidents
+    .filter((i) => DOWNTIME_IMPACTS.has(i.impact))
+    .map((i) => [
+      Math.max(windowStart, Date.parse(i.createdAt)),
+      Math.min(now, i.resolvedAt ? Date.parse(i.resolvedAt) : now),
+    ])
+    .filter(([start, end]) => end > start)
+    .sort((a, b) => a[0] - b[0]);
+
+  let down = 0;
+  let coveredUntil = windowStart;
+  for (const [start, end] of spans) {
+    if (end <= coveredUntil) continue;
+    down += end - Math.max(start, coveredUntil);
+    coveredUntil = end;
+  }
+  return 100 * (1 - down / (now - windowStart));
+}
 
 /**
  * Drops the no-data days at the start, from before monitoring began, so a new
@@ -113,8 +138,13 @@ function renderRun(run) {
   });
 }
 
+/**
+ * Compact strips (in row headers) are decoration for pointer users. Full strips can be
+ * focused and read with the arrow keys (see tooltip.js).
+ */
 export function renderStrip(slots, { compact = false } = {}) {
-  return h('div', { class: compact ? 'strip strip-compact' : 'strip', 'aria-hidden': 'true' },
-    toRuns(slots).map(renderRun),
-  );
+  const props = compact
+    ? { class: 'strip strip-compact', 'aria-hidden': 'true' }
+    : { class: 'strip', tabindex: '0', role: 'group', 'aria-label': 'Daily status. Use the left and right arrow keys to go through it.' };
+  return h('div', props, toRuns(slots).map(renderRun));
 }

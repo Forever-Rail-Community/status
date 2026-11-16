@@ -187,8 +187,41 @@ a { color: inherit; }
   font-size: 0.8125rem;
 }
 
+.meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  margin-top: 12px;
+}
+
+.explainer { font-size: 0.75rem; color: var(--muted); }
+.explainer summary {
+  cursor: pointer;
+  font-weight: 500;
+  list-style: none;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.explainer summary::-webkit-details-marker { display: none; }
+.explainer summary:hover, .explainer[open] summary { color: var(--text); }
+.explainer[open] { flex-basis: 100%; order: 1; } /* drops below the Updated line when open */
+.explainer-body {
+  margin-top: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+.explainer-body p { margin: 0; }
+.explainer-body p + p { margin-top: 8px; }
+.explainer-body strong { color: var(--text); font-weight: 600; }
+
 .updated {
-  margin: 12px 0 0;
+  margin: 0 0 0 auto;
   text-align: right;
   color: var(--muted);
   font-size: 0.75rem;
@@ -313,6 +346,7 @@ details[open] > summary .strip-compact { display: none; }
   border: 1px solid var(--border);
   border-top: 0;
   border-radius: 0 0 var(--radius) var(--radius);
+  background: var(--surface);
 }
 
 /* Right padding matches the header row's, so the strip and nested cards end where its text does. */
@@ -374,6 +408,10 @@ details[open] > summary .strip-compact { display: none; }
 .seg[data-level="maintenance"] { background: var(--maintenance); }
 
 .seg:hover { filter: brightness(1.25); transform: scaleY(1.4); }
+
+.strip[tabindex] { border-radius: 4px; }
+.strip[tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.seg-active { outline: 2px solid var(--text); outline-offset: 2px; }
 
 .strip-compact { width: 86px; gap: 2px; }
 .strip-compact .seg { min-width: 4px; }
@@ -650,6 +688,15 @@ details[open] > summary .strip-compact { display: none; }
 .incident-facts dd { margin: 2px 0 0; font-size: 0.875rem; font-weight: 500; }
 
 
+/* ---------- 404 page ---------- */
+
+.not-found {
+  display: grid;
+  justify-items: start;
+  gap: 14px;
+  padding-top: 48px;
+}
+
 /* ---------- theme switcher (footer) ---------- */
 
 .theme-switcher {
@@ -729,4 +776,14 @@ details[open] > summary .strip-compact { display: none; }
   .incident-title { flex: 1 1 calc(100% - 30px); }
   .incident-impact { margin-left: 23px; }
   .past-meta { margin-left: 0; flex-basis: 100%; }
+}
+
+/* Read by screen readers, not shown. */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

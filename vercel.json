@@ -1,4 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [{ "source": "/incidents/:id", "destination": "/incident/index.html" }]
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/incidents/:id",
+      "destination": "/incident/index.html"
+    },
+    {
+      "source": "/feed.xml",
+      "destination": "/api/feed"
+    }
+  ]
 }

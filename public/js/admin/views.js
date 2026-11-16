@@ -15,6 +15,7 @@ import {
   impactSelect,
   messageInput,
   statusSelect,
+  templatePicker,
   titleInput,
 } from './fields.js';
 
@@ -62,6 +63,7 @@ export function newIncidentForm(meta, onSubmit) {
   return h('section', { class: 'card' },
     h('h2', {}, 'New incident'),
     asyncForm('incident-form', [
+      templatePicker(meta.templates ?? []),
       titleInput(),
       h('div', { class: 'field-row' }, impactSelect(meta.impacts), statusSelect(meta.statuses)),
       componentPicker(meta.groups),

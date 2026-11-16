@@ -34,12 +34,14 @@ function renderHeader(page, features, current) {
   ].filter(Boolean);
 }
 
-function renderFooter(page) {
+function renderFooter(page, features) {
   const { footer } = page;
+  // The RSS feed lists incident updates, so it's offered only when incidents are set up.
+  const links = features?.history ? [...footer.links, { label: 'RSS', href: '/feed.xml' }] : footer.links;
   return [
     footer.text && h('p', { class: 'footer-text' }, footer.text),
-    footer.links.length > 0 && h('nav', { class: 'footer-links' },
-      footer.links.map((l) => h('a', { class: 'footer-link', href: l.href }, l.label)),
+    links.length > 0 && h('nav', { class: 'footer-links' },
+      links.map((l) => h('a', { class: 'footer-link', href: l.href }, l.label)),
     ),
     footer.poweredBy && h('p', { class: 'powered-by' },
       'Powered by ', h('a', { href: 'https://hetrixtools.com', rel: 'noopener' }, 'HetrixTools'),
@@ -52,5 +54,5 @@ function renderFooter(page) {
 export function renderChrome({ page, features }, { current }) {
   applyTheme(page);
   byId('site-header').replaceChildren(...renderHeader(page, features, current));
-  byId('site-footer').replaceChildren(...renderFooter(page));
+  byId('site-footer').replaceChildren(...renderFooter(page, features));
 }

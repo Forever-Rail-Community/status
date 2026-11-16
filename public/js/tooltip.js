@@ -2,6 +2,8 @@
 //   data-tip="text"                                         plain tooltip
 //   data-tip-title / -state / -detail / -body               tinted header + body (strips)
 //   data-tip-items="a\nb"                                   incident titles listed under the body
+// Strips with tabindex can also be read from the keyboard: arrow keys (and Home/End)
+// step through their segments, showing the tooltip and announcing it to screen readers.
 
 import { h } from './dom.js';
 
@@ -23,10 +25,19 @@ function content({ tip, tipTitle, tipState, tipDetail, tipBody, tipItems }) {
   ].filter(Boolean); // replaceChildren() would print a missing section as "undefined"
 }
 
+/** The tooltip as one sentence, for the screen reader announcement. */
+const describe = ({ tipTitle, tipDetail, tipBody, tipItems }) =>
+  [tipBody, tipTitle, tipDetail, tipItems && `Incidents: ${tipItems.split('\n').join(', ')}`]
+    .filter(Boolean)
+    .join('. ');
+
+const STEPS = { ArrowLeft: -1, ArrowRight: 1, Home: -Infinity, End: Infinity };
+
 export function attachTooltip(root) {
   const tip = h('div', { class: 'tooltip', role: 'tooltip' });
   tip.hidden = true;
-  document.body.append(tip);
+  const announcer = h('div', { class: 'visually-hidden', 'aria-live': 'polite' });
+  document.body.append(tip, announcer);
 
   const show = (target) => {
     tip.replaceChildren(...content(target.dataset));
@@ -52,4 +63,43 @@ export function attachTooltip(root) {
   });
   root.addEventListener('pointerleave', hide);
   window.addEventListener('scroll', hide, { passive: true });
+
+  // ---------- keyboard ----------
+
+  const activeSegment = (strip) => strip.querySelector('.seg-active');
+
+  const select = (strip, segment) => {
+    activeSegment(strip)?.classList.remove('seg-active');
+    segment.classList.add('seg-active');
+    show(segment);
+    announcer.textContent = describe(segment.dataset);
+  };
+
+  // Focusing a strip starts on today, the right-hand end.
+  root.addEventListener('focusin', (event) => {
+    const strip = event.target.closest('.strip[tabindex]');
+    if (strip?.lastElementChild) select(strip, activeSegment(strip) ?? strip.lastElementChild);
+  });
+
+  root.addEventListener('focusout', (event) => {
+    const strip = event.target.closest('.strip[tabindex]');
+    if (!strip) return;
+    activeSegment(strip)?.classList.remove('seg-active');
+    hide();
+  });
+
+  root.addEventListener('keydown', (event) => {
+    const strip = event.target.closest('.strip[tabindex]');
+    if (!strip) return;
+    if (event.key === 'Escape') {
+      hide();
+      return;
+    }
+    if (!(event.key in STEPS)) return;
+    event.preventDefault();
+    const segments = [...strip.children];
+    const current = segments.indexOf(activeSegment(strip));
+    const next = Math.min(Math.max(current + STEPS[event.key], 0), segments.length - 1);
+    select(strip, segments[next]);
+  });
 }
