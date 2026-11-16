@@ -2,28 +2,14 @@
 // Light/Dark/Auto choice from the footer switcher, which wins when set.
 
 import { h } from './dom.js';
+import { readChoice, storeChoice } from './storage.js';
 
 export const THEMES = ['light', 'dark', 'auto'];
 const LABELS = { light: 'Light', dark: 'Dark', auto: 'Auto' };
 const STORAGE_KEY = 'status-theme'; // also read by theme-early.js
 
-// Storage can be unavailable (privacy modes, embedded views); the choice then lasts for the visit.
-function storedTheme() {
-  try {
-    const value = localStorage.getItem(STORAGE_KEY);
-    return THEMES.includes(value) ? value : null;
-  } catch {
-    return null;
-  }
-}
-
-function storeTheme(theme) {
-  try {
-    localStorage.setItem(STORAGE_KEY, theme);
-  } catch {
-    // ignore: see storedTheme()
-  }
-}
+const storedTheme = () => readChoice(STORAGE_KEY, THEMES);
+const storeTheme = (theme) => storeChoice(STORAGE_KEY, theme);
 
 // Same rule as theme-early.js.
 const colorSchemeFor = (theme) => (theme === 'auto' ? 'light dark' : theme);
@@ -52,7 +38,7 @@ export function applyTheme(page) {
 /** Light / Dark / Auto buttons for the footer. */
 export function renderThemeSwitcher(page) {
   const buttons = THEMES.map((theme) =>
-    h('button', { type: 'button', class: 'theme-option', dataset: { theme } }, LABELS[theme]),
+    h('button', { type: 'button', class: 'switcher-option', dataset: { theme } }, LABELS[theme]),
   );
 
   const markActive = () => {
@@ -69,5 +55,5 @@ export function renderThemeSwitcher(page) {
   }
 
   markActive();
-  return h('div', { class: 'theme-switcher', role: 'group', 'aria-label': 'Colour theme' }, buttons);
+  return h('div', { class: 'switcher', role: 'group', 'aria-label': 'Colour theme' }, buttons);
 }

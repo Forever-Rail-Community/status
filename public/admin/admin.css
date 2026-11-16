@@ -113,6 +113,32 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, .btn:focus-vi
   letter-spacing: 0.04em;
 }
 
+.picker-family,
+.picker-kids {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+}
+.picker-family { flex-basis: 100%; }
+.picker-kids { padding-left: 12px; border-left: 1px solid var(--border); }
+
+/* ---------- routes (pause / resume) ---------- */
+
+.route-list { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.route-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.route-item .status-icon { width: 20px; height: 20px; }
+.route-name { font-weight: 500; }
+.route-meta { color: var(--muted); font-size: 0.8125rem; }
+.route-item .btn { margin-left: auto; }
+
 .check {
   display: inline-flex;
   align-items: center;

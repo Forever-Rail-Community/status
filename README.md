@@ -28,7 +28,9 @@ Postgres database, because Vercel functions can't save files.
 
 1. **Database.** Add a Neon Postgres database to the Vercel project (Storage → Neon), or use
    a new database in your existing Neon account. Vercel sets `DATABASE_URL` for you.
-   Create the tables once: put `DATABASE_URL` in `.env` and run `npm run db:migrate`.
+   Create the tables once: put `DATABASE_URL` in `.env` and run `npm run db:migrate`
+   (or paste the statements from `SCHEMA` in `lib/db.js` into Neon's SQL editor). Run it
+   again after updates that add tables; it skips what already exists.
 2. **Discord app.** In the Discord Developer Portal, use an existing application or create
    one. Under OAuth2, add the redirect URL `https://<your-status-domain>/api/auth/callback`
    (plus `http://localhost:3000/api/auth/callback` for `vercel dev`). Copy the client ID
@@ -72,6 +74,8 @@ Then visit `/admin`, sign in with Discord, and post incidents.
   incidents on `/` and from `/history`. Needs `vercel.json` (it maps these URLs to one page).
 - Top right of the header: **History** (shown when incidents are set up), your
   `header.button`, and **Log in** → `/admin` (shown when admin sign-in is set up).
+- `/api/summary`: overall status and every component (routes nested), readable from any
+  site. Meant for the operations dashboard's status widget. Cached for 60 seconds.
 - `/feed.xml`: RSS feed with one item per incident update (latest 50). Linked in the footer
   when incidents are set up. Works with Discord RSS bots and feed readers.
 - Any other address shows a 404 page with the normal header and footer.
@@ -126,7 +130,8 @@ The admin page isn't linked from the status page and is marked `noindex`.
 | `header.button` | `{ label, href }` button on the right (e.g. Discord), or `null` |
 | `footer.text` / `footer.links` | Footer line and links |
 | `footer.poweredBy` | `false` hides "Powered by HetrixTools" |
-| `groups` | `[{ name, description?, components: [...] }]` |
+| `groups` | `[{ name, description?, layout?, components: [...] }]` |
+| `groups[].layout` | `'rows'` (default) or `'grid'`. Visitors can switch with **Rows / Grid**; their pick is remembered and applies to every group |
 
 Components:
 
@@ -134,6 +139,18 @@ Components:
 { id: 'run8-se', name: 'SE Route', monitor: '<monitor id>' }   // live from HetrixTools
 { id: 'discord', name: 'Discord server', status: 'operational' } // manual; incidents drive it
 ```
+
+A component can hold sub-components, e.g. Run8 and its routes (three levels in all:
+group → component → sub-component):
+
+```js
+{ id: 'frc-run8', name: 'Run8', monitor: '<server monitor>', components: [
+  { id: 'run8-se', name: 'SE route', monitor: '<port 15199 monitor>', pausable: true },
+] }
+```
+
+`pausable: true` (components with a monitor only) adds Pause / Resume for it under
+**Routes** in `/admin`, and gives it the route icons: play = up, unplug = down, pause = not running.
 
 `id` is how incidents refer to a component. It defaults to the name in lowercase with
 dashes. Set it explicitly if you might rename the component, so past incidents stay attached.
@@ -146,6 +163,13 @@ dashes. Set it explicitly if you might rename the component, so past incidents s
   Not running).
 - **Open incidents** raise the components they affect. The worse of the monitor and the
   incident wins.
+- **Paused routes** show **Not running** whatever their monitor says, and don't count
+  toward their parent, group or the banner. An open incident on a paused route still shows.
+  A day touched by a pause shows grey in the strip and its HetrixTools uptime is left out
+  (it includes the switched-off time); an incident that day still colours it.
+- **A component with routes** (Run8) combines its own monitor with its routes: one route down
+  on a working server is *Partial* outage; the server down is *Major* outage; every route
+  paused with the server fine is **Not running**.
 - **Groups** show their worst component. The **page banner** shows the worst overall, except
   that one component fully down while others are fine reads as *Partial* outage.
 - **Strips** colour each day by the worse of that day's uptime (≥ 99.9% green, ≥ 99% yellow,

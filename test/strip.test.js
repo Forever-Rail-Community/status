@@ -1,7 +1,7 @@
 // Incident-based uptime for components without a monitor (public/js/strip.js).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { componentSlots, incidentUptime, lastDates } from '../public/js/strip.js';
+import { componentSlots, incidentUptime, lastDates, parentSlots } from '../public/js/strip.js';
 
 const HOUR = 3_600_000;
 // Window: the whole of Nov 1 and Nov 2 (UTC), "now" = end of Nov 2 → 48 hours.
@@ -57,4 +57,23 @@ test('an incident colours the day it happened in the page time zone', () => {
   }).map((s) => s.level);
   assert.deepEqual(slots('America/Chicago'), ['major_outage', 'operational']);
   assert.deepEqual(slots('UTC'), ['operational', 'major_outage']);
+});
+
+test('a paused day shows as paused and drops out of uptime; an incident that day still shows', () => {
+  const days = [{ date: '2026-11-14', uptime: 100 }, { date: '2026-11-15', uptime: 40 }, { date: '2026-11-16', uptime: 100 }];
+  const pause = { startedAt: '2026-11-15T02:00:00Z', endedAt: '2026-11-15T20:00:00Z' };
+  const slots = (incidents = []) => componentSlots({
+    days, incidents, pauses: [pause], axis: days.map((d) => d.date), baseLevel: 'none', timeZone: 'UTC',
+    now: Date.parse('2026-11-16T12:00:00Z'),
+  });
+  assert.deepEqual(slots().map((s) => [s.level, s.uptime]), [['operational', 100], ['paused', null], ['operational', 100]]);
+  const outage = { title: 'x', impact: 'major_outage', createdAt: '2026-11-15T21:00:00Z', resolvedAt: '2026-11-15T22:00:00Z' };
+  assert.equal(slots([outage])[1].level, 'major_outage');
+});
+
+test('a parent day is paused when every route was paused and its server was fine', () => {
+  const slot = (level) => ({ date: 'd', uptime: null, level, incidents: [] });
+  const own = [slot('operational'), slot('operational'), slot('major_outage')];
+  const routes = [[slot('paused'), slot('operational'), slot('paused')], [slot('paused'), slot('paused'), slot('paused')]];
+  assert.deepEqual(parentSlots(own, routes).map((s) => s.level), ['paused', 'operational', 'major_outage']);
 });

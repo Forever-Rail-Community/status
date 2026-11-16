@@ -1,7 +1,8 @@
 import { byId, h } from '../dom.js';
 import { applyTheme, renderThemeSwitcher } from '../theme.js';
 import { ApiError, api } from './api.js';
-import { incidentLists, messageView, newIncidentForm, signInView } from './views.js';
+import { incidentLists, messageView, newIncidentForm, routesSection, signInView } from './views.js';
+import { componentStatusMap } from '../incidents-view.js';
 
 const root = byId('admin');
 const actionsBar = byId('admin-actions');
@@ -17,6 +18,7 @@ function applyPage(page) {
 
 let meta = null; // from /api/admin/session
 const listContainer = h('div', { class: 'admin-lists' });
+const routesContainer = h('div');
 const notice = h('p', { class: 'admin-notice', role: 'status' });
 
 // The incident is saved either way; only the Discord post can fail.
@@ -30,6 +32,19 @@ async function refreshIncidents() {
   const incidents = await api.incidents();
   listContainer.replaceChildren(...incidentLists(incidents, meta, incidentActions));
 }
+
+// Live status is only for the icons; if the public status can't load, routes show as unknown.
+async function refreshRoutes() {
+  if (meta.pausable.length === 0) return; // routesSection would render nothing
+  const [paused, status] = await Promise.all([api.pauses(), api.publicStatus().catch(() => null)]);
+  const liveStatus = status ? componentStatusMap(status.groups) : new Map();
+  routesContainer.replaceChildren(routesSection(meta.pausable, { paused, liveStatus }, routeActions));
+}
+
+const routeActions = {
+  pause: (id) => api.pause(id).then(refreshRoutes),
+  resume: (id) => api.resume(id).then(refreshRoutes),
+};
 
 // Every change re-fetches the list, so what's shown is always what's stored.
 const incidentActions = {
@@ -49,6 +64,7 @@ function renderSignedIn(user) {
   root.replaceChildren(
     notice,
     newIncidentForm(meta, (values) => api.createIncident(values).then(reportDiscord).then(refreshIncidents)),
+    routesContainer,
     listContainer,
   );
 }
@@ -70,7 +86,7 @@ async function start() {
   document.title = `${meta.page.title} · Admin`;
   renderSignedIn(meta.user);
   history.replaceState(null, '', location.pathname); // drop ?error= after a good sign-in
-  await refreshIncidents();
+  await Promise.all([refreshIncidents(), refreshRoutes()]);
 }
 
 start();

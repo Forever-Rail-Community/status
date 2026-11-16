@@ -28,6 +28,21 @@ export const titleInput = (value = '') =>
 export const messageInput = (placeholder) =>
   field('Message', h('textarea', { name: 'message', required: true, maxlength: 5000, rows: 3, placeholder }));
 
+const componentCheckbox = (c, chosen) =>
+  h('label', { class: 'check' },
+    h('input', { type: 'checkbox', name: 'components', value: c.id, checked: chosen.has(c.id) }),
+    c.name,
+  );
+
+/** A component, with its sub-components (routes) indented underneath when it has any. */
+const pickerItem = (c, chosen) =>
+  c.components.length === 0
+    ? componentCheckbox(c, chosen)
+    : h('div', { class: 'picker-family' },
+      componentCheckbox(c, chosen),
+      h('div', { class: 'picker-kids' }, c.components.map((k) => componentCheckbox(k, chosen))),
+    );
+
 /** Checkboxes for every component, grouped like the status page. */
 export function componentPicker(groups, selected = []) {
   const chosen = new Set(selected);
@@ -36,12 +51,7 @@ export function componentPicker(groups, selected = []) {
     groups.map((group) =>
       h('div', { class: 'picker-group' },
         h('span', { class: 'picker-group-name' }, group.name),
-        group.components.map((c) =>
-          h('label', { class: 'check' },
-            h('input', { type: 'checkbox', name: 'components', value: c.id, checked: chosen.has(c.id) }),
-            c.name,
-          ),
-        ),
+        group.components.map((c) => pickerItem(c, chosen)),
       ),
     ),
     h('span', { class: 'field-hint' }, 'None selected = affects the whole page.'),

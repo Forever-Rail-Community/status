@@ -12,6 +12,10 @@ const SHAPES = {
   wrench:
     '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/>',
   'circle-help': '<circle cx="12" cy="12" r="10"/><path d="M9 9.5a3 2.5 0 016 0c0 2-2 2-3 3.5"/><path d="M12 17h.01"/>',
+  'circle-play':
+    '<path d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z"/><circle cx="12" cy="12" r="10"/>',
+  unplug:
+    '<path d="m19 5 3-3"/><path d="m2 22 3-3"/><path d="M6.3 20.3a2.4 2.4 0 0 0 3.4 0L12 18l-6-6-2.3 2.3a2.4 2.4 0 0 0 0 3.4Z"/><path d="M7.5 13.5 10 11"/><path d="M10.5 16.5 13 14"/><path d="m12 6 6 6 2.3-2.3a2.4 2.4 0 0 0 0-3.4l-2.6-2.6a2.4 2.4 0 0 0-3.4 0Z"/>',
   'circle-pause': '<circle cx="12" cy="12" r="10"/><line x1="10" x2="10" y1="15" y2="9"/><line x1="14" x2="14" y1="15" y2="9"/>',
   'loader-circle': '<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
 };
@@ -28,11 +32,23 @@ const ICON_FOR_STATE = {
   loading: 'loader-circle',
 };
 
+// Routes (pausable components) read as running / unplugged / paused instead.
+const ROUTE_ICON_FOR_STATE = {
+  partial_outage: 'unplug',
+  major_outage: 'unplug',
+  paused: 'circle-pause',
+  unknown: 'circle-help',
+};
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 /** Decorative status icon; colour comes from the surrounding text (currentColor). */
-export function statusIcon(state) {
-  const name = ICON_FOR_STATE[state] ?? ICON_FOR_STATE.unknown;
+export const statusIcon = (state) => icon(ICON_FOR_STATE[state] ?? ICON_FOR_STATE.unknown);
+
+/** Route icon: play when it's up (incl. degraded/maintenance), unplug when down, pause when paused. */
+export const routeIcon = (state) => icon(ROUTE_ICON_FOR_STATE[state] ?? 'circle-play');
+
+function icon(name) {
   const svg = document.createElementNS(SVG_NS, 'svg');
   for (const [attr, value] of Object.entries({
     viewBox: '0 0 24 24',

@@ -1,4 +1,4 @@
-// Creates the incident tables (safe to run repeatedly).
+// Creates the incident and pause tables (safe to run repeatedly).
 // Usage: npm run db:migrate   (reads DATABASE_URL from .env)
 import { getDb, migrate } from '../lib/db.js';
 
@@ -9,4 +9,4 @@ if (!db) {
 }
 
 await migrate(db);
-console.log('Incident tables are ready.');
+console.log('Database tables are ready.');

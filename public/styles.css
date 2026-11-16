@@ -20,6 +20,7 @@
   --major_outage: light-dark(#dc2626, #ef4444);
   --maintenance: light-dark(#2563eb, #3b82f6);
   --none: light-dark(#e4e4e7, #333333);
+  --paused: light-dark(#a1a1aa, #5c5c63); /* "Not running": greyer than no-data so it reads as a state */
 
   /* Accent: admin buttons, focus rings. Override with `accent` in status.config.js. */
   --accent: light-dark(#18181b, #ececec);
@@ -66,6 +67,7 @@ a { color: inherit; }
 [data-state="partial_outage"] { --state: var(--partial_outage); }
 [data-state="major_outage"] { --state: var(--major_outage); }
 [data-state="maintenance"] { --state: var(--maintenance); }
+[data-state="paused"] { --state: var(--paused); }
 
 /* ---------- header ---------- */
 
@@ -220,8 +222,11 @@ a { color: inherit; }
 .explainer-body p + p { margin-top: 8px; }
 .explainer-body strong { color: var(--text); font-weight: 600; }
 
+.meta-end { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.layout-switcher { margin-top: 0; }
+
 .updated {
-  margin: 0 0 0 auto;
+  margin: 0;
   text-align: right;
   color: var(--muted);
   font-size: 0.75rem;
@@ -346,6 +351,7 @@ details[open] > summary .strip-compact { display: none; }
   border: 1px solid var(--border);
   border-top: 0;
   border-radius: 0 0 var(--radius) var(--radius);
+  background: var(--surface);
 }
 
 /* Right padding matches the header row's, so the strip and nested cards end where its text does. */
@@ -368,6 +374,49 @@ details[open] > summary .strip-compact { display: none; }
 
 .component .row { padding: 8px 12px; }
 .component-body { padding: 0 12px 10px 33px; }
+.component-body > .children { margin-top: 8px; } /* routes under Run8 / Railroader */
+.component .component { background: var(--surface); }
+
+/* Routes lead with a running / unplugged / paused icon in their state colour. */
+.route-icon { display: inline-flex; flex: none; color: var(--state); }
+.route-icon .status-icon { width: 1.05em; height: 1.05em; }
+
+/* ---------- grid layout ---------- */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr));
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.tile {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.tile .row-name { font-size: 0.9375rem; }
+.tile-status { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tile-status .strip-compact { flex: none; }
+.tile-uptime { margin: 0; color: var(--muted); font-size: 0.8125rem; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 0.8125rem;
+}
+.chip-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--state); }
 
 /* ---------- timelines & strips ---------- */
 
@@ -405,6 +454,7 @@ details[open] > summary .strip-compact { display: none; }
 .seg[data-level="partial_outage"] { background: var(--partial_outage); }
 .seg[data-level="major_outage"] { background: var(--major_outage); }
 .seg[data-level="maintenance"] { background: var(--maintenance); }
+.seg[data-level="paused"] { background: var(--paused); }
 
 .seg:hover { filter: brightness(1.25); transform: scaleY(1.4); }
 
@@ -696,9 +746,9 @@ details[open] > summary .strip-compact { display: none; }
   padding-top: 48px;
 }
 
-/* ---------- theme switcher (footer) ---------- */
+/* ---------- switchers: theme (footer), layout (status page) ---------- */
 
-.theme-switcher {
+.switcher {
   display: inline-flex;
   gap: 2px;
   margin-top: 10px;
@@ -708,7 +758,7 @@ details[open] > summary .strip-compact { display: none; }
   background: var(--surface);
 }
 
-.theme-option {
+.switcher-option {
   padding: 3px 10px;
   border: 0;
   border-radius: 6px;
@@ -720,9 +770,9 @@ details[open] > summary .strip-compact { display: none; }
   cursor: pointer;
 }
 
-.theme-option:hover { color: var(--text); }
-.theme-option[aria-pressed="true"] { background: var(--surface-2); color: var(--text); }
-.theme-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.switcher-option:hover { color: var(--text); }
+.switcher-option[aria-pressed="true"] { background: var(--surface-2); color: var(--text); }
+.switcher-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* ---------- history page ---------- */
 

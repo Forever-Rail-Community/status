@@ -2,9 +2,12 @@
 // the form disables itself while saving and shows any error inline.
 
 import { h } from '../dom.js';
+import { componentNameMap } from '../incidents-view.js';
+import { routeIcon } from '../icons.js';
 import {
   IMPACT_LABELS,
   INCIDENT_STATUS_LABELS,
+  STATUS_LABELS,
   formatAgo,
   formatDateTime,
 } from '../format.js';
@@ -56,6 +59,49 @@ export function signInView(errorCode) {
 
 export const messageView = (title, text) =>
   h('section', { class: 'card center' }, h('h2', {}, title), h('p', { class: 'muted' }, text));
+
+// ---------- routes ----------
+
+/**
+ * Pause / resume for pausable components (routes).
+ * @param paused      id → ISO time it was paused (from /api/admin/pauses; always fresh)
+ * @param liveStatus  id → status from /api/status (cached up to a minute; may lag a change)
+ */
+export function routesSection(routes, { paused, liveStatus }, actions) {
+  const item = (r) => {
+    const since = paused[r.id];
+    // Just resumed, the cached public status can still say paused: show it as unknown until it catches up.
+    const live = liveStatus.get(r.id);
+    const state = since ? 'paused' : live && live !== 'paused' ? live : 'unknown';
+    const button = h('button', { class: 'btn', type: 'button' }, since ? 'Resume' : 'Pause');
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      try {
+        await (since ? actions.resume(r.id) : actions.pause(r.id));
+      } catch (err) {
+        button.disabled = false;
+        button.title = err.message;
+      }
+    });
+
+    return h('li', { class: 'route-item' },
+      h('span', { class: 'route-icon', dataset: { state } }, routeIcon(state)),
+      h('div', {},
+        h('div', { class: 'route-name' }, r.parent ? `${r.parent} · ${r.name}` : r.name),
+        h('div', { class: 'route-meta' },
+          since ? `Not running since ${formatDateTime(since)}` : state === 'unknown' ? 'Checking…' : STATUS_LABELS[state]),
+      ),
+      button,
+    );
+  };
+
+  return h('section', { class: 'card' },
+    h('h2', {}, 'Routes'),
+    h('p', { class: 'muted small' },
+      'Pause a route when it\'s switched off on purpose. It shows "Not running", and paused days don\'t count toward its uptime.'),
+    h('ul', { class: 'route-list' }, routes.map(item)),
+  );
+}
 
 // ---------- incidents ----------
 
@@ -115,7 +161,7 @@ function deleteButton(onDelete) {
 
 function incidentCard(incident, meta, actions) {
   const nextStatus = incident.resolvedAt ? 'monitoring' : incident.status;
-  const componentNames = new Map(meta.groups.flatMap((g) => g.components.map((c) => [c.id, c.name])));
+  const componentNames = componentNameMap(meta.groups);
 
   const updateForm = asyncForm('update-form', [
     h('div', { class: 'field-row' }, statusSelect(meta.statuses, nextStatus)),

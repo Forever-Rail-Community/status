@@ -6,8 +6,9 @@ import { h } from './dom.js';
 import { STATUS_LABELS, average, formatDayRange, formatUptime, uptimeLevel } from './format.js';
 import { addDays, startOfDay, zonedDate } from './timezone.js';
 
-const LEVEL_ORDER = ['none', 'operational', 'maintenance', 'degraded', 'partial_outage', 'major_outage'];
-const QUIET_LEVELS = new Set(['operational', 'none']);
+// 'paused' sits low: any real status that day (a working route, an incident) outranks it.
+const LEVEL_ORDER = ['none', 'paused', 'operational', 'maintenance', 'degraded', 'partial_outage', 'major_outage'];
+const QUIET_LEVELS = new Set(['operational', 'none', 'paused']);
 
 const worseLevel = (a, b) => (LEVEL_ORDER.indexOf(b) > LEVEL_ORDER.indexOf(a) ? b : a);
 
@@ -23,10 +24,10 @@ export function lastDates(count, timeZone, now = Date.now()) {
 /** [start, end) of a day in epoch ms; 23 or 25 hours long on daylight-saving days. */
 const dayBounds = (date, timeZone) => [startOfDay(date, timeZone), startOfDay(addDays(date, 1), timeZone)];
 
-function touchedDay(incident, [dayStart, dayEnd], now) {
-  const start = Date.parse(incident.createdAt);
-  const end = incident.resolvedAt ? Date.parse(incident.resolvedAt) : now;
-  return start < dayEnd && end >= dayStart;
+/** Whether a span (an incident or a pause; null end = still going) overlaps the day. */
+function touchedDay(startIso, endIso, [dayStart, dayEnd], now) {
+  const end = endIso ? Date.parse(endIso) : now;
+  return Date.parse(startIso) < dayEnd && end >= dayStart;
 }
 
 /**
@@ -34,19 +35,22 @@ function touchedDay(incident, [dayStart, dayEnd], now) {
  * @param days       daily uptime from /api/history (monitor components), or null
  * @param incidents  incidents affecting this component (scheduled-only ones excluded)
  * @param baseLevel  level for a day with no uptime data: 'none' for monitors, 'operational' for manual
+ * @param pauses     times this component (a route) was paused: { startedAt, endedAt }
  * @param timeZone   the page's time zone (days run midnight to midnight there)
+ *
+ * A day touched by a pause shows as paused and its HetrixTools uptime isn't counted (it
+ * includes the switched-off time). An incident that day still colours it.
  */
-export function componentSlots({ days, incidents, axis, baseLevel, timeZone, now = Date.now() }) {
+export function componentSlots({ days, incidents, pauses = [], axis, baseLevel, timeZone, now = Date.now() }) {
   const uptimeByDate = new Map((days ?? []).map((d) => [d.date, d.uptime]));
 
   return axis.map((date) => {
-    const uptime = uptimeByDate.get(date) ?? null;
     const bounds = dayBounds(date, timeZone);
-    const touching = incidents.filter((i) => touchedDay(i, bounds, now));
-    const level = touching.reduce(
-      (worst, i) => worseLevel(worst, i.impact),
-      uptime === null ? baseLevel : uptimeLevel(uptime),
-    );
+    const paused = pauses.some((p) => touchedDay(p.startedAt, p.endedAt, bounds, now));
+    const uptime = paused ? null : (uptimeByDate.get(date) ?? null);
+    const touching = incidents.filter((i) => touchedDay(i.createdAt, i.resolvedAt, bounds, now));
+    const start = paused ? 'paused' : uptime === null ? baseLevel : uptimeLevel(uptime);
+    const level = touching.reduce((worst, i) => worseLevel(worst, i.impact), start);
     return { date, uptime, level, incidents: touching.map((i) => i.title) };
   });
 }
@@ -61,6 +65,18 @@ export function groupSlots(slotLists) {
       level: day.reduce((worst, s) => worseLevel(worst, s.level), 'none'),
       incidents: [...new Set(day.flatMap((s) => s.incidents))],
     };
+  });
+}
+
+/**
+ * A parent's day (Run8 from its server monitor + routes): combined like a group, except a
+ * day where every route was paused and the server was fine reads as paused, the same
+ * rule as its live status.
+ */
+export function parentSlots(ownSlots, childSlotLists) {
+  return groupSlots([ownSlots, ...childSlotLists]).map((slot, i) => {
+    const allPaused = childSlotLists.every((slots) => slots[i].level === 'paused');
+    return allPaused && ownSlots[i].level === 'operational' ? { ...slot, level: 'paused' } : slot;
   });
 }
 

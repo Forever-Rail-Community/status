@@ -6,6 +6,7 @@ import { createExpandedState } from './expanded.js';
 import { statusIcon } from './icons.js';
 import { componentNameMap, renderActiveIncidents, takesOverBanner } from './incidents-view.js';
 import { renderGroups } from './render.js';
+import { chosenLayout, renderLayoutSwitcher } from './layout.js';
 import { attachTooltip } from './tooltip.js';
 
 const STATUS_REFRESH_MS = 60_000;
@@ -21,6 +22,7 @@ const els = {
   activeIncidents: byId('active-incidents'),
   updated: byId('updated'),
   explainerTz: byId('explainer-tz'),
+  layoutSwitch: byId('layout-switch'),
   groups: byId('groups'),
 };
 
@@ -40,6 +42,7 @@ function renderPageChrome(status) {
   els.bannerNotice.textContent = status.page.notice ?? '';
   els.bannerNotice.hidden = !status.page.notice;
   els.explainerTz.textContent = status.page.timezone;
+  els.layoutSwitch.replaceChildren(renderLayoutSwitcher(renderStatus));
 }
 
 function setBannerState(state, title) {
@@ -95,7 +98,13 @@ function renderStatus() {
   const place = stripPlace();
   els.groups.replaceChildren(
     ...renderGroups(status.groups, {
-      history, incidents, expanded, days: status.page.historyDays, timeZone: status.page.timezone,
+      history,
+      incidents,
+      expanded,
+      days: status.page.historyDays,
+      timeZone: status.page.timezone,
+      pauses: status.pauses ?? [],
+      layout: chosenLayout(),
     }),
   );
   restoreStripPlace(place);

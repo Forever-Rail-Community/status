@@ -91,8 +91,17 @@ function activeCard(incident, componentNames, expanded) {
 /** True for incidents that replace the status banner (scheduled maintenance doesn't). */
 export const takesOverBanner = (incident) => incident.status !== 'scheduled';
 
-export const componentNameMap = (groups) =>
-  new Map(groups.flatMap((g) => g.components.map((c) => [c.id, c.name])));
+/** id → pick(component) for every component, sub-components included. */
+const componentMap = (groups, pick) => {
+  const walk = (components) => components.flatMap((c) => [[c.id, pick(c)], ...walk(c.components ?? [])]);
+  return new Map(groups.flatMap((g) => walk(g.components)));
+};
+
+/** id → name (status payload or admin session). */
+export const componentNameMap = (groups) => componentMap(groups, (c) => c.name);
+
+/** id → live status (status payload). */
+export const componentStatusMap = (groups) => componentMap(groups, (c) => c.status);
 
 export const renderActiveIncidents = (incidents, componentNames, expanded) =>
   incidents.map((i) => activeCard(i, componentNames, expanded));
