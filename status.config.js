@@ -69,12 +69,11 @@ export default {
       description: "Servers that host and offer access to Forever Rail's community game servers.",
       components: [
         // HetrixTools "Service" monitors checking each route's TCP port.
-        { id: 'frc-run8', name: 'Run8', monitor: 'd71b93dd7d6de8cc07143d4f4fc48a12', description: '…', components: [
-            { id: 'run8-se',  name: 'SE route',  route: true, description: '' },
-            { id: 'run8-ags', name: 'AGS route', route: true, description: '' },
-            { id: 'run8-pa',  name: 'PA route',  route: true, description: '' },
-            { id: 'run8-ne',  name: 'NE route',  route: true, description: '' },
-            { id: 'run8-sw',  name: 'SW route',  route: true, description: '' },
+        { id: 'frc-run8', name: 'Run8', monitor: 'd71b93dd7d6de8cc07143d4f4fc48a12', description: 'Server that hosts and provides Run8 instances for community use.', components: [
+            { id: 'run8-se',  name: 'SE route',  route: true, description: 'Southeast Route (Savannah, Baldwin, Fitzgerald, Waycross, AGS and A Line subs' },
+            { id: 'run8-pa',  name: 'PA route',  route: true, description: 'Pittsburgh, Mohawk, Selkirk and South Fork subs' },
+            { id: 'run8-ne',  name: 'NE route',  route: true, description: 'Roseville sub' },
+            { id: 'run8-sw',  name: 'SW route',  route: true, description: 'Bakersfield, Fresno, Trona, San Bernardino, Arvin/Oak Creek, Seligman, and Cajon sub ' },
           ] },
         { id: 'frc-railroader', name: 'Railroader', monitor: 'a4060a4edb61bed4a7b5243aeb5b8da1', description: 'Server that hosts and provides Railroader instances for community use. Note: This is currently not available to the community at this time as it is still going through testing.' },
       ],
