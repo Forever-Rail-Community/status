@@ -346,7 +346,6 @@ details[open] > summary .strip-compact { display: none; }
   border: 1px solid var(--border);
   border-top: 0;
   border-radius: 0 0 var(--radius) var(--radius);
-  background: var(--surface);
 }
 
 /* Right padding matches the header row's, so the strip and nested cards end where its text does. */
