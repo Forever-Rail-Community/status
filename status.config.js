@@ -73,7 +73,7 @@ export default {
             { id: 'run8-se',  name: 'SE route',  route: true, description: 'Southeast Route (Savannah, Baldwin, Fitzgerald, Waycross, AGS and A Line subs' },
             { id: 'run8-pa',  name: 'PA route',  route: true, description: 'Pittsburgh, Mohawk, Selkirk and South Fork subs' },
             { id: 'run8-ne',  name: 'NE route',  route: true, description: 'Roseville sub' },
-            { id: 'run8-sw',  name: 'SW route',  route: true, description: 'Bakersfield, Fresno, Trona, San Bernardino, Arvin/Oak Creek, Seligman, and Cajon sub ' },
+            { id: 'run8-sw',  name: 'SW route',  route: true, description: 'Bakersfield, Fresno, Trona, San Bernardino, Arvin/Oak Creek, Seligman, and Cajon subs ' },
           ] },
         { id: 'frc-railroader', name: 'Railroader', monitor: 'a4060a4edb61bed4a7b5243aeb5b8da1', description: 'Server that hosts and provides Railroader instances for community use. Note: This is currently not available to the community at this time as it is still going through testing.' },
       ],
