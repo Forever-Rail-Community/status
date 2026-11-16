@@ -33,7 +33,7 @@ test('upgrading from the pause-only table keeps open pauses as Paused', { skip }
   await client.query('truncate route_states');
 });
 
-test('set Down, Down again (no-op), Paused, Up; history is kept', { skip }, async () => {
+test('set Down, Down again (no-op), Paused, Up; every period is kept', { skip }, async () => {
   await set('run8-se', 'down');
   const since = (await currentRouteStates(db))['run8-se'].since;
   await set('run8-se', 'down');
@@ -42,13 +42,13 @@ test('set Down, Down again (no-op), Paused, Up; history is kept', { skip }, asyn
   await set('run8-se', 'paused');
   assert.equal((await currentRouteStates(db))['run8-se'].state, 'paused');
   await set('run8-se', 'up');
-  assert.deepEqual(await currentRouteStates(db), {});
+  assert.equal((await currentRouteStates(db))['run8-se'].state, 'up'); // Up is recorded too
 
   const history = await listRouteStates(db, { days: 30 });
-  assert.deepEqual(history.map((p) => [p.state, p.endedAt !== null]), [['down', true], ['paused', true]]);
+  assert.deepEqual(history.map((p) => [p.state, p.endedAt !== null]), [['down', true], ['paused', true], ['up', false]]);
 
   await set('run8-se', 'up'); // already up: nothing to do
-  assert.equal((await listRouteStates(db, { days: 30 })).length, 2);
+  assert.equal((await listRouteStates(db, { days: 30 })).length, 3);
 });
 
 test('refuses unknown routes and states', { skip }, async () => {

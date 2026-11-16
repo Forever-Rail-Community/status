@@ -35,25 +35,45 @@ function touchedDay(startIso, endIso, [dayStart, dayEnd], now) {
  * @param days       daily uptime from /api/history (monitor components), or null
  * @param incidents  incidents affecting this component (scheduled-only ones excluded)
  * @param baseLevel  level for a day with no uptime data: 'none' for monitors, 'operational' for manual
- * @param periods    a route's Down / Paused periods: { state, startedAt, endedAt }
+ * @param periods    a route's state periods ({ state, startedAt, endedAt }); see routeDayLevel
  * @param timeZone   the page's time zone (days run midnight to midnight there)
- *
- * A route's day shows Paused if it was paused at any point and Down (major outage) if it
- * was set Down; Down and incidents outrank Paused.
  */
 export function componentSlots({ days, incidents, periods = [], axis, baseLevel, timeZone, now = Date.now() }) {
   const uptimeByDate = new Map((days ?? []).map((d) => [d.date, d.uptime]));
+  const trackedFrom = routeTrackedFrom(periods);
 
   return axis.map((date) => {
     const bounds = dayBounds(date, timeZone);
     const uptime = uptimeByDate.get(date) ?? null;
-    const statesThatDay = new Set(periods.filter((p) => touchedDay(p.startedAt, p.endedAt, bounds, now)).map((p) => p.state));
     const touching = incidents.filter((i) => touchedDay(i.createdAt, i.resolvedAt, bounds, now));
-    const start = statesThatDay.has('paused') ? 'paused' : uptime === null ? baseLevel : uptimeLevel(uptime);
-    const level = [...touching.map((i) => i.impact), ...(statesThatDay.has('down') ? ['major_outage'] : [])]
-      .reduce(worseLevel, start);
+    const start = trackedFrom !== null
+      ? routeDayLevel(periods, bounds, trackedFrom, now)
+      : uptime === null ? baseLevel : uptimeLevel(uptime);
+    const level = touching.map((i) => i.impact).reduce(worseLevel, start);
     return { date, uptime, level, incidents: touching.map((i) => i.title) };
   });
+}
+
+/** When a route started being tracked (its first state period), or null if it never was. */
+export function routeTrackedFrom(periods) {
+  return periods.length ? Math.min(...periods.map((p) => Date.parse(p.startedAt))) : null;
+}
+
+/**
+ * A route's day, over the part of it that was tracked: Down at any point → outage;
+ * otherwise Up at any point → operational (a route that ran shows green even if it was
+ * also paused); otherwise paused the whole time → paused. Untracked days have no data.
+ * Time not covered by a Down or Paused period counts as Up (older data has no Up rows).
+ */
+function routeDayLevel(periods, [dayStart, dayEnd], trackedFrom, now) {
+  const from = Math.max(dayStart, trackedFrom);
+  const to = Math.min(dayEnd, now);
+  if (to <= from) return 'none';
+
+  const spans = (state) => periods.filter((p) => p.state === state).map((p) => span(p.startedAt, p.endedAt, now));
+  if (mergeSpans(spans('down'), from, to).length > 0) return 'major_outage';
+  const notUp = mergeSpans([...spans('down'), ...spans('paused')], from, to);
+  return totalLength(notUp) < to - from ? 'operational' : 'paused';
 }
 
 /** A group's day: its worst component, their average uptime, all their incidents. */
@@ -71,12 +91,13 @@ export function groupSlots(slotLists) {
 
 /**
  * A parent's day (Run8 from its server monitor + routes): combined like a group, except a
- * day where every route was paused and the server was fine reads as paused, the same
- * rule as its live status.
+ * day where every tracked route was paused and the server was fine reads as paused, the
+ * same rule as its live status. Routes with no data that day don't count either way.
  */
 export function parentSlots(ownSlots, childSlotLists) {
   return groupSlots([ownSlots, ...childSlotLists]).map((slot, i) => {
-    const allPaused = childSlotLists.every((slots) => slots[i].level === 'paused');
+    const tracked = childSlotLists.map((slots) => slots[i].level).filter((level) => level !== 'none');
+    const allPaused = tracked.length > 0 && tracked.every((level) => level === 'paused');
     return allPaused && ownSlots[i].level === 'operational' ? { ...slot, level: 'paused' } : slot;
   });
 }
@@ -118,13 +139,14 @@ const span = (startIso, endIso, now) => [Date.parse(startIso), endIso ? Date.par
 
 /**
  * Uptime % for a component with no monitor (manual components and routes), since the start
- * of `fromDate` in `timeZone`. Down: outage incidents (partial or major; degraded and
- * maintenance don't count) and, for routes, time set to Down. Paused time is left out
- * entirely. Null when there's no unpaused time to measure.
- * @param periods  a route's Down / Paused periods ({ state, startedAt, endedAt })
+ * of `fromDate` in `timeZone` (for a route, no earlier than when it started being tracked).
+ * Down: outage incidents (partial or major; degraded and maintenance don't count) and, for
+ * routes, time set to Down. Paused time is left out entirely. Null when there's no
+ * unpaused time to measure.
+ * @param periods  a route's state periods ({ state, startedAt, endedAt })
  */
 export function manualUptime(incidents, fromDate, timeZone, { periods = [], now = Date.now() } = {}) {
-  const windowStart = startOfDay(fromDate, timeZone);
+  const windowStart = Math.max(startOfDay(fromDate, timeZone), routeTrackedFrom(periods) ?? -Infinity);
   const down = mergeSpans([
     ...incidents.filter((i) => DOWNTIME_IMPACTS.has(i.impact)).map((i) => span(i.createdAt, i.resolvedAt, now)),
     ...periods.filter((p) => p.state === 'down').map((p) => span(p.startedAt, p.endedAt, now)),

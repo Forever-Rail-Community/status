@@ -83,14 +83,17 @@ function measure(component, ctx) {
     incidents,
     periods,
     axis: ctx.axis,
-    baseLevel: monitored ? 'none' : 'operational',
+    // Monitors and routes show no data until they have some; manual components start operational.
+    baseLevel: monitored || component.route ? 'none' : 'operational',
     timeZone: ctx.timeZone,
   });
   // Monitors: HetrixTools' daily uptime (its overall figure until the daily history loads).
-  // Manual components and routes: time not under an outage incident or set Down.
-  const ownUptime = monitored
-    ? (days ? rangeUptime(trimToMonitored(ownSlots)) : component.uptime)
-    : manualUptime(incidents, trimToMonitored(ownSlots)[0].date, ctx.timeZone, { periods });
+  // Manual components and routes: time not under an outage incident or set Down. A route
+  // that has never been set has no uptime yet.
+  let ownUptime;
+  if (monitored) ownUptime = days ? rangeUptime(trimToMonitored(ownSlots)) : component.uptime;
+  else if (component.route && periods.length === 0) ownUptime = null;
+  else ownUptime = manualUptime(incidents, trimToMonitored(ownSlots)[0].date, ctx.timeZone, { periods });
 
   const children = component.components.map((c) => measure(c, ctx));
   const allSlots = children.length ? parentSlots(ownSlots, children.map((c) => c.allSlots)) : ownSlots;
