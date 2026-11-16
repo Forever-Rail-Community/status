@@ -54,7 +54,7 @@ export default {
   timezone: 'America/Chicago',
   incidentTemplates: [
     { name: 'Route down', title: 'SE route server unreachable', impact: 'major_outage',
-      components: ['run8-se'], message: "Players can't connect. We're looking into it." },
+      components: ['frc-run8'], message: "Players can't connect. We're looking into it." },
   ],
 
   footer: {
