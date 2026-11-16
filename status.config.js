@@ -45,6 +45,18 @@ export default {
     // button: { label: 'Join Discord', href: 'https://discord.gg/your-invite' },
   },
 
+  site: {
+    url: 'https://your-status-domain',  // needed for the preview image to show
+    description: 'Live status of Forever Rail servers and services.',
+    image: '/preview.png',              // 1200×630, in public/
+    favicon: '/favicon.png',            // in public/
+  },
+  timezone: 'America/Chicago',
+  incidentTemplates: [
+    { name: 'Route down', title: 'SE route server unreachable', impact: 'major_outage',
+      components: ['run8-se'], message: "Players can't connect. We're looking into it." },
+  ],
+
   footer: {
     text: '2021-2026 © Forever Rail Community',
     links: [],
