@@ -1,4 +1,4 @@
-// Creates the incident and pause tables (safe to run repeatedly).
+// Creates the incident and route-state tables (safe to run repeatedly).
 // Usage: npm run db:migrate   (reads DATABASE_URL from .env)
 import { getDb, migrate } from '../lib/db.js';
 

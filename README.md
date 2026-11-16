@@ -145,12 +145,13 @@ group → component → sub-component):
 
 ```js
 { id: 'frc-run8', name: 'Run8', monitor: '<server monitor>', components: [
-  { id: 'run8-se', name: 'SE route', monitor: '<port 15199 monitor>', pausable: true },
+  { id: 'run8-se', name: 'SE route', route: true, description: 'Port 15199' },
 ] }
 ```
 
-`pausable: true` (components with a monitor only) adds Pause / Resume for it under
-**Routes** in `/admin`, and gives it the route icons: play = up, unplug = down, pause = not running.
+`route: true` makes a component a **route**: no monitor, no fixed status. You set it to
+**Up**, **Down** or **Paused** under **Routes** in `/admin`; it starts out Up. Routes get their
+own icons: play = up, unplug = down, pause = not running.
 
 `id` is how incidents refer to a component. It defaults to the name in lowercase with
 dashes. Set it explicitly if you might rename the component, so past incidents stay attached.
@@ -163,13 +164,13 @@ dashes. Set it explicitly if you might rename the component, so past incidents s
   Not running).
 - **Open incidents** raise the components they affect. The worse of the monitor and the
   incident wins.
-- **Paused routes** show **Not running** whatever their monitor says, and don't count
-  toward their parent, group or the banner. An open incident on a paused route still shows.
-  A day touched by a pause shows grey in the strip and its HetrixTools uptime is left out
-  (it includes the switched-off time); an incident that day still colours it.
+- **Routes** are what you set in `/admin`. Down = major outage. Paused = **Not running**: it
+  doesn't count toward its parent, group or the banner. An open incident on a route still
+  shows. In the strip, a day with any Paused time is grey and a day with any Down time is red.
+  Route uptime counts Down time as down and leaves Paused time out.
 - **A component with routes** (Run8) combines its own monitor with its routes: one route down
-  on a working server is *Partial* outage; the server down is *Major* outage; every route
-  paused with the server fine is **Not running**.
+  on a working server is *Partial* outage; the server down is *Major* outage whatever its
+  routes are set to; every route paused with the server fine is **Not running**.
 - **Groups** show their worst component. The **page banner** shows the worst overall, except
   that one component fully down while others are fine reads as *Partial* outage.
 - **Strips** colour each day by the worse of that day's uptime (≥ 99.9% green, ≥ 99% yellow,

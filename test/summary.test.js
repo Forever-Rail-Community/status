@@ -7,13 +7,13 @@ import { fakeHetrix } from './helpers.js';
 const config = {
   title: 'FR',
   groups: [{ name: 'Servers', components: [{ id: 'frc-run8', name: 'Run8', monitor: 'srv', description: 'secret-ish', components: [
-    { id: 'run8-se', name: 'SE route', monitor: 'se', pausable: true },
+    { id: 'run8-se', name: 'SE route', route: true },
   ] }] }],
 };
 
 test('summary: overall, nested components, CORS, no monitor ids or descriptions', async () => {
   process.env.HETRIX_API_KEY = 'k';
-  const { fetchImpl } = fakeHetrix({ monitors: [{ id: 'srv', uptime_status: 'up' }, { id: 'se', uptime_status: 'down' }] });
+  const { fetchImpl } = fakeHetrix({ monitors: [{ id: 'srv', uptime_status: 'down' }] });
   const GET = createHandler((ctx) => loadSummary({ ...ctx, fetchImpl }), {
     cacheControl: 'public, s-maxage=60', respond: respondJsonCors, config, db: null,
   });
@@ -21,10 +21,10 @@ test('summary: overall, nested components, CORS, no monitor ids or descriptions'
   assert.equal(res.headers.get('access-control-allow-origin'), '*');
   const body = await res.json();
   assert.equal(body.url, 'https://status.example.com');
-  assert.equal(body.overall, 'partial_outage');
+  assert.equal(body.overall, 'major_outage');
   assert.deepEqual(body.groups[0].components[0], {
-    id: 'frc-run8', name: 'Run8', status: 'partial_outage',
-    components: [{ id: 'run8-se', name: 'SE route', status: 'major_outage', pausable: true, components: [] }],
+    id: 'frc-run8', name: 'Run8', status: 'major_outage',
+    components: [{ id: 'run8-se', name: 'SE route', status: 'operational', route: true, components: [] }],
   });
   assert.doesNotMatch(JSON.stringify(body), /srv|secret-ish/);
 });

@@ -24,7 +24,7 @@ export function lastDates(count, timeZone, now = Date.now()) {
 /** [start, end) of a day in epoch ms; 23 or 25 hours long on daylight-saving days. */
 const dayBounds = (date, timeZone) => [startOfDay(date, timeZone), startOfDay(addDays(date, 1), timeZone)];
 
-/** Whether a span (an incident or a pause; null end = still going) overlaps the day. */
+/** Whether a span (an incident or a route period; null end = still going) overlaps the day. */
 function touchedDay(startIso, endIso, [dayStart, dayEnd], now) {
   const end = endIso ? Date.parse(endIso) : now;
   return Date.parse(startIso) < dayEnd && end >= dayStart;
@@ -35,22 +35,23 @@ function touchedDay(startIso, endIso, [dayStart, dayEnd], now) {
  * @param days       daily uptime from /api/history (monitor components), or null
  * @param incidents  incidents affecting this component (scheduled-only ones excluded)
  * @param baseLevel  level for a day with no uptime data: 'none' for monitors, 'operational' for manual
- * @param pauses     times this component (a route) was paused: { startedAt, endedAt }
+ * @param periods    a route's Down / Paused periods: { state, startedAt, endedAt }
  * @param timeZone   the page's time zone (days run midnight to midnight there)
  *
- * A day touched by a pause shows as paused and its HetrixTools uptime isn't counted (it
- * includes the switched-off time). An incident that day still colours it.
+ * A route's day shows Paused if it was paused at any point and Down (major outage) if it
+ * was set Down; Down and incidents outrank Paused.
  */
-export function componentSlots({ days, incidents, pauses = [], axis, baseLevel, timeZone, now = Date.now() }) {
+export function componentSlots({ days, incidents, periods = [], axis, baseLevel, timeZone, now = Date.now() }) {
   const uptimeByDate = new Map((days ?? []).map((d) => [d.date, d.uptime]));
 
   return axis.map((date) => {
     const bounds = dayBounds(date, timeZone);
-    const paused = pauses.some((p) => touchedDay(p.startedAt, p.endedAt, bounds, now));
-    const uptime = paused ? null : (uptimeByDate.get(date) ?? null);
+    const uptime = uptimeByDate.get(date) ?? null;
+    const statesThatDay = new Set(periods.filter((p) => touchedDay(p.startedAt, p.endedAt, bounds, now)).map((p) => p.state));
     const touching = incidents.filter((i) => touchedDay(i.createdAt, i.resolvedAt, bounds, now));
-    const start = paused ? 'paused' : uptime === null ? baseLevel : uptimeLevel(uptime);
-    const level = touching.reduce((worst, i) => worseLevel(worst, i.impact), start);
+    const start = statesThatDay.has('paused') ? 'paused' : uptime === null ? baseLevel : uptimeLevel(uptime);
+    const level = [...touching.map((i) => i.impact), ...(statesThatDay.has('down') ? ['major_outage'] : [])]
+      .reduce(worseLevel, start);
     return { date, uptime, level, incidents: touching.map((i) => i.title) };
   });
 }
@@ -85,30 +86,57 @@ export const rangeUptime = (slots) => average(slots.map((s) => s.uptime));
 // Incident impacts that count as downtime for components without a monitor.
 const DOWNTIME_IMPACTS = new Set(['partial_outage', 'major_outage']);
 
-/**
- * Uptime % for a component with no monitor: the share of time since the start of
- * `fromDate` (in `timeZone`) not covered by an outage incident. Degraded performance and
- * maintenance don't count as down. Overlapping incidents are only counted once.
- */
-export function incidentUptime(incidents, fromDate, timeZone, now = Date.now()) {
-  const windowStart = startOfDay(fromDate, timeZone);
-  const spans = incidents
-    .filter((i) => DOWNTIME_IMPACTS.has(i.impact))
-    .map((i) => [
-      Math.max(windowStart, Date.parse(i.createdAt)),
-      Math.min(now, i.resolvedAt ? Date.parse(i.resolvedAt) : now),
-    ])
+/** [start, end] ms spans clipped to [from, to], sorted and merged (overlaps counted once). */
+function mergeSpans(spans, from, to) {
+  const merged = [];
+  const clipped = spans
+    .map(([start, end]) => [Math.max(from, start), Math.min(to, end)])
     .filter(([start, end]) => end > start)
     .sort((a, b) => a[0] - b[0]);
-
-  let down = 0;
-  let coveredUntil = windowStart;
-  for (const [start, end] of spans) {
-    if (end <= coveredUntil) continue;
-    down += end - Math.max(start, coveredUntil);
-    coveredUntil = end;
+  for (const [start, end] of clipped) {
+    const last = merged.at(-1);
+    if (last && start <= last[1]) last[1] = Math.max(last[1], end);
+    else merged.push([start, end]);
   }
-  return 100 * (1 - down / (now - windowStart));
+  return merged;
+}
+
+const totalLength = (spans) => spans.reduce((sum, [start, end]) => sum + end - start, 0);
+
+/** Total overlap of two merged span lists. */
+function overlapLength(a, b) {
+  let total = 0;
+  for (let i = 0, j = 0; i < a.length && j < b.length;) {
+    total += Math.max(0, Math.min(a[i][1], b[j][1]) - Math.max(a[i][0], b[j][0]));
+    if (a[i][1] < b[j][1]) i++;
+    else j++;
+  }
+  return total;
+}
+
+const span = (startIso, endIso, now) => [Date.parse(startIso), endIso ? Date.parse(endIso) : now];
+
+/**
+ * Uptime % for a component with no monitor (manual components and routes), since the start
+ * of `fromDate` in `timeZone`. Down: outage incidents (partial or major; degraded and
+ * maintenance don't count) and, for routes, time set to Down. Paused time is left out
+ * entirely. Null when there's no unpaused time to measure.
+ * @param periods  a route's Down / Paused periods ({ state, startedAt, endedAt })
+ */
+export function manualUptime(incidents, fromDate, timeZone, { periods = [], now = Date.now() } = {}) {
+  const windowStart = startOfDay(fromDate, timeZone);
+  const down = mergeSpans([
+    ...incidents.filter((i) => DOWNTIME_IMPACTS.has(i.impact)).map((i) => span(i.createdAt, i.resolvedAt, now)),
+    ...periods.filter((p) => p.state === 'down').map((p) => span(p.startedAt, p.endedAt, now)),
+  ], windowStart, now);
+  const paused = mergeSpans(
+    periods.filter((p) => p.state === 'paused').map((p) => span(p.startedAt, p.endedAt, now)),
+    windowStart, now,
+  );
+
+  const measured = now - windowStart - totalLength(paused);
+  if (measured <= 0) return null;
+  return 100 * (1 - (totalLength(down) - overlapLength(down, paused)) / measured);
 }
 
 /**

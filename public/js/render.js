@@ -4,7 +4,7 @@ import { routeIcon } from './icons.js';
 import {
   componentSlots,
   groupSlots,
-  incidentUptime,
+  manualUptime,
   lastDates,
   parentSlots,
   rangeUptime,
@@ -19,9 +19,9 @@ const chevron = () => h('span', { class: 'chevron', 'aria-hidden': 'true' });
 const infoIcon = (text) =>
   h('span', { class: 'info', role: 'img', 'aria-label': text, dataset: { tip: text } }, 'i');
 
-/** Routes (pausable components) lead with a running / unplugged / paused icon. */
+/** Routes lead with a running / unplugged / paused icon. */
 const routeBadge = (component) =>
-  component.pausable && h('span', { class: 'route-icon', dataset: { state: component.status } }, routeIcon(component.status));
+  component.route && h('span', { class: 'route-icon', dataset: { state: component.status } }, routeIcon(component.status));
 
 const rowTitle = (tag, name, description, component) =>
   h('div', { class: 'row-title' },
@@ -75,21 +75,22 @@ const collapsible = (className, key, ctx, summary, body) =>
  */
 function measure(component, ctx) {
   const incidents = ctx.incidents.filter((i) => i.components.includes(component.id));
+  const periods = ctx.routePeriods.get(component.id) ?? [];
   const monitored = component.source === 'hetrix';
   const days = ctx.history?.components[component.id];
   const ownSlots = componentSlots({
     days,
     incidents,
-    pauses: ctx.pauses.get(component.id) ?? [],
+    periods,
     axis: ctx.axis,
     baseLevel: monitored ? 'none' : 'operational',
     timeZone: ctx.timeZone,
   });
-  // Monitors: HetrixTools' daily uptime (paused days left out; the overall figure until
-  // the daily history loads). Manual components: time not under an outage incident.
+  // Monitors: HetrixTools' daily uptime (its overall figure until the daily history loads).
+  // Manual components and routes: time not under an outage incident or set Down.
   const ownUptime = monitored
     ? (days ? rangeUptime(trimToMonitored(ownSlots)) : component.uptime)
-    : incidentUptime(incidents, trimToMonitored(ownSlots)[0].date, ctx.timeZone);
+    : manualUptime(incidents, trimToMonitored(ownSlots)[0].date, ctx.timeZone, { periods });
 
   const children = component.components.map((c) => measure(c, ctx));
   const allSlots = children.length ? parentSlots(ownSlots, children.map((c) => c.allSlots)) : ownSlots;
@@ -115,7 +116,7 @@ const uptimeLine = (slots, uptime) =>
 /** A sub-component (route) as a small chip inside its parent's tile. */
 const chip = ({ component }) =>
   h('span', { class: 'chip', dataset: { tip: STATUS_LABELS[component.status] } },
-    component.pausable
+    component.route
       ? routeBadge(component)
       : h('span', { class: 'chip-dot', dataset: { state: component.status } }),
     component.name,
@@ -155,12 +156,12 @@ function renderGroup(group, key, ctx) {
  * @param options.incidents active + recent incidents
  * @param options.expanded  remembered open/closed choices (see expanded.js)
  * @param options.timeZone  the page's time zone: strips show its calendar days
- * @param options.pauses    when routes were paused (from /api/status)
+ * @param options.routeStates  when routes were Down or Paused (from /api/status)
  * @param options.layout    the visitor's 'rows' / 'grid' choice, or null for each group's default
  */
-export function renderGroups(groups, { history, incidents, days, expanded, timeZone, pauses = [], layout = null }) {
-  const pausesByComponent = new Map();
-  for (const p of pauses) pausesByComponent.set(p.component, [...(pausesByComponent.get(p.component) ?? []), p]);
+export function renderGroups(groups, { history, incidents, days, expanded, timeZone, routeStates = [], layout = null }) {
+  const routePeriods = new Map();
+  for (const p of routeStates) routePeriods.set(p.component, [...(routePeriods.get(p.component) ?? []), p]);
 
   const ctx = {
     history,
@@ -168,7 +169,7 @@ export function renderGroups(groups, { history, incidents, days, expanded, timeZ
     days,
     timeZone,
     layout,
-    pauses: pausesByComponent,
+    routePeriods,
     axis: lastDates(days, timeZone),
     // Planned maintenance that hasn't started doesn't colour the strips.
     incidents: incidents.filter((i) => i.status !== 'scheduled'),

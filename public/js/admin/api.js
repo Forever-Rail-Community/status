@@ -27,9 +27,8 @@ export const api = {
   editIncident: (id, edit) => request('PATCH', `/api/admin/incidents?id=${id}`, edit),
   deleteIncident: (id) => request('DELETE', `/api/admin/incidents?id=${id}`),
   postUpdate: (id, update) => request('POST', `/api/admin/incident-updates?id=${id}`, update),
-  pauses: () => request('GET', '/api/admin/pauses').then((d) => d.paused),
-  pause: (component) => request('POST', '/api/admin/pauses', { component }),
-  resume: (component) => request('DELETE', `/api/admin/pauses?component=${encodeURIComponent(component)}`),
-  publicStatus: () => request('GET', '/api/status'),
+  routeStates: () => request('GET', '/api/admin/route-states').then((d) => d.states),
+  setRouteState: (component, state) =>
+    request('PUT', '/api/admin/route-states', { component, state }).then((d) => d.states),
   logout: () => request('POST', '/api/auth/logout'),
 };

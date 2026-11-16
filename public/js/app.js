@@ -103,7 +103,7 @@ function renderStatus() {
       expanded,
       days: status.page.historyDays,
       timeZone: status.page.timezone,
-      pauses: status.pauses ?? [],
+      routeStates: status.routeStates ?? [],
       layout: chosenLayout(),
     }),
   );

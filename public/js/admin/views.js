@@ -7,7 +7,6 @@ import { routeIcon } from '../icons.js';
 import {
   IMPACT_LABELS,
   INCIDENT_STATUS_LABELS,
-  STATUS_LABELS,
   formatAgo,
   formatDateTime,
 } from '../format.js';
@@ -62,43 +61,54 @@ export const messageView = (title, text) =>
 
 // ---------- routes ----------
 
+const ROUTE_CHOICES = [
+  { state: 'up', label: 'Up', status: 'operational' },
+  { state: 'down', label: 'Down', status: 'major_outage' },
+  { state: 'paused', label: 'Paused', status: 'paused' },
+];
+
 /**
- * Pause / resume for pausable components (routes).
- * @param paused      id → ISO time it was paused (from /api/admin/pauses; always fresh)
- * @param liveStatus  id → status from /api/status (cached up to a minute; may lag a change)
+ * An Up / Down / Paused switch per route.
+ * @param states    id → { state, since } for routes that aren't Up (from /api/admin/route-states)
+ * @param onChange  (id, state) => Promise; the list re-renders from the server's answer
  */
-export function routesSection(routes, { paused, liveStatus }, actions) {
+export function routesSection(routes, states, onChange) {
   const item = (r) => {
-    const since = paused[r.id];
-    // Just resumed, the cached public status can still say paused: show it as unknown until it catches up.
-    const live = liveStatus.get(r.id);
-    const state = since ? 'paused' : live && live !== 'paused' ? live : 'unknown';
-    const button = h('button', { class: 'btn', type: 'button' }, since ? 'Resume' : 'Pause');
-    button.addEventListener('click', async () => {
-      button.disabled = true;
-      try {
-        await (since ? actions.resume(r.id) : actions.pause(r.id));
-      } catch (err) {
-        button.disabled = false;
-        button.title = err.message;
-      }
+    const current = states[r.id] ?? { state: 'up', since: null };
+    const choice = ROUTE_CHOICES.find((c) => c.state === current.state);
+
+    const buttons = ROUTE_CHOICES.map((c) => {
+      const button = h('button', {
+        type: 'button', class: 'switcher-option', 'aria-pressed': String(c.state === current.state),
+      }, c.label);
+      button.addEventListener('click', async () => {
+        if (c.state === current.state) return;
+        for (const b of buttons) b.disabled = true;
+        try {
+          await onChange(r.id, c.state);
+        } catch (err) {
+          for (const b of buttons) b.disabled = false;
+          button.title = err.message;
+        }
+      });
+      return button;
     });
 
     return h('li', { class: 'route-item' },
-      h('span', { class: 'route-icon', dataset: { state } }, routeIcon(state)),
+      h('span', { class: 'route-icon', dataset: { state: choice.status } }, routeIcon(choice.status)),
       h('div', {},
         h('div', { class: 'route-name' }, r.parent ? `${r.parent} · ${r.name}` : r.name),
         h('div', { class: 'route-meta' },
-          since ? `Not running since ${formatDateTime(since)}` : state === 'unknown' ? 'Checking…' : STATUS_LABELS[state]),
+          current.since ? `${choice.label} since ${formatDateTime(current.since)}` : choice.label),
       ),
-      button,
+      h('div', { class: 'switcher route-switch', role: 'group', 'aria-label': `${r.name} state` }, buttons),
     );
   };
 
   return h('section', { class: 'card' },
     h('h2', {}, 'Routes'),
     h('p', { class: 'muted small' },
-      'Pause a route when it\'s switched off on purpose. It shows "Not running", and paused days don\'t count toward its uptime.'),
+      'Set each route by hand. Down counts as an outage; Paused shows "Not running" and doesn\'t count toward uptime.'),
     h('ul', { class: 'route-list' }, routes.map(item)),
   );
 }

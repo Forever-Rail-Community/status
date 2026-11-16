@@ -24,7 +24,7 @@ before(async () => {
   if (skip) return;
   client = new pg.Client({ connectionString: url });
   await client.connect();
-  await client.query('drop table if exists incident_updates, incidents, component_pauses');
+  await client.query('drop table if exists incident_updates, incidents, component_pauses, route_states');
   await migrate(db);
   await migrate(db); // idempotent
 });

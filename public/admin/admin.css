@@ -137,7 +137,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, .btn:focus-vi
 .route-item .status-icon { width: 20px; height: 20px; }
 .route-name { font-weight: 500; }
 .route-meta { color: var(--muted); font-size: 0.8125rem; }
-.route-item .btn { margin-left: auto; }
+.route-switch { margin: 0 0 0 auto; flex: none; }
+@media (max-width: 520px) {
+  .route-item { flex-wrap: wrap; }
+  .route-switch { margin-left: 30px; }
+}
 
 .check {
   display: inline-flex;

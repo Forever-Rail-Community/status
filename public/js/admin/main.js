@@ -2,7 +2,6 @@ import { byId, h } from '../dom.js';
 import { applyTheme, renderThemeSwitcher } from '../theme.js';
 import { ApiError, api } from './api.js';
 import { incidentLists, messageView, newIncidentForm, routesSection, signInView } from './views.js';
-import { componentStatusMap } from '../incidents-view.js';
 
 const root = byId('admin');
 const actionsBar = byId('admin-actions');
@@ -33,18 +32,14 @@ async function refreshIncidents() {
   listContainer.replaceChildren(...incidentLists(incidents, meta, incidentActions));
 }
 
-// Live status is only for the icons; if the public status can't load, routes show as unknown.
-async function refreshRoutes() {
-  if (meta.pausable.length === 0) return; // routesSection would render nothing
-  const [paused, status] = await Promise.all([api.pauses(), api.publicStatus().catch(() => null)]);
-  const liveStatus = status ? componentStatusMap(status.groups) : new Map();
-  routesContainer.replaceChildren(routesSection(meta.pausable, { paused, liveStatus }, routeActions));
+function renderRoutes(states) {
+  routesContainer.replaceChildren(routesSection(meta.routes, states, (id, state) =>
+    api.setRouteState(id, state).then(renderRoutes)));
 }
 
-const routeActions = {
-  pause: (id) => api.pause(id).then(refreshRoutes),
-  resume: (id) => api.resume(id).then(refreshRoutes),
-};
+async function refreshRoutes() {
+  if (meta.routes.length > 0) renderRoutes(await api.routeStates());
+}
 
 // Every change re-fetches the list, so what's shown is always what's stored.
 const incidentActions = {
