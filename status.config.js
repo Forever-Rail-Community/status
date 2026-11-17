@@ -92,6 +92,7 @@ export default {
         { id: 'vercel', name: 'Vercel', status: 'operational' },
         { id: 'cloudflare', name: 'Cloudflare', status: 'operational' },
         { id: 'neon', name: 'Neon', status: 'operational' },
+        { id: 'steam', name: 'Steam', status: 'operational' },
       ],
     },
   ],
