@@ -49,7 +49,7 @@ export default {
     url: 'https://status.foreverrail.com',  // needed for the preview image to show
     description: 'Live status of Forever Rail servers and services.',
     image: '/preview.png',              // 1200×630, in public/
-    favicon: 'public/images/frc-logo-purple.png',            // in public/
+    favicon: '/images/frc-logo-purple.png',            // in public/
   },
   timezone: 'America/Chicago',
   incidentTemplates: [
