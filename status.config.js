@@ -46,10 +46,10 @@ export default {
   },
 
   site: {
-    url: 'https://your-status-domain',  // needed for the preview image to show
+    url: 'https://status.foreverrail.com',  // needed for the preview image to show
     description: 'Live status of Forever Rail servers and services.',
     image: '/preview.png',              // 1200×630, in public/
-    favicon: '/favicon.png',            // in public/
+    favicon: 'public/images/frc-logo-purple.png',            // in public/
   },
   timezone: 'America/Chicago',
   incidentTemplates: [
