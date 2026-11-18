@@ -10,6 +10,7 @@
     "dev": "npm run build && vercel dev",
     "monitors": "node --env-file=.env scripts/list-monitors.js",
     "db:migrate": "node --env-file=.env scripts/migrate.js",
+    "check-metrics": "node --env-file=.env scripts/check-metrics.js",
     "test": "node --test test/*.test.js",
     "test:db": "node --test --test-concurrency=1 test/*.test.js"
   },

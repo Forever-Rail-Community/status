@@ -10,6 +10,27 @@ const dateTimeFormat = new Intl.DateTimeFormat(undefined, {
 /** 'Nov 13, 2:05 PM' in the viewer's timezone. */
 export const formatDateTime = (iso) => dateTimeFormat.format(new Date(iso));
 
+const windowFormat = new Intl.DateTimeFormat(undefined, {
+  weekday: 'short',
+  month: 'short',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: '2-digit',
+  timeZoneName: 'short',
+});
+
+/** A maintenance window in the viewer's time zone: 'Sat, Nov 22, 2:00 – 4:00 AM CST'. */
+export const formatWindow = ({ startsAt, endsAt }) => windowFormat.formatRange(new Date(startsAt), new Date(endsAt));
+
+/** 'Starts in 2d 3h' / 'Ends in 45m' for a window that hasn't finished; null once it has. */
+export function windowCountdown({ startsAt, endsAt }, now = Date.now()) {
+  const start = Date.parse(startsAt);
+  const end = Date.parse(endsAt);
+  if (now < start) return `Starts in ${formatDuration(start - now)}`;
+  if (now < end) return `Ends in ${formatDuration(end - now)}`;
+  return null;
+}
+
 /** '2h 13m', '45m', '3d 4h' */
 export function formatDuration(ms) {
   const minutes = Math.max(1, Math.round(ms / 60_000));

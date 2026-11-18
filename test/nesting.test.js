@@ -73,3 +73,28 @@ test('an open incident on a paused route still shows', () => {
   const incident = { id: 1, title: 'x', impact: 'major_outage', status: 'investigating', components: ['run8-se'], createdAt: '2026-11-16T00:00:00.000Z', resolvedAt: null, updates: [] };
   assert.equal(run8Of(status([period('run8-se', 'paused')], true, [incident])).components[0].status, 'major_outage');
 });
+
+const maintenance = (components, status = 'in_progress') => ({
+  id: 9, title: 'Updates', impact: 'maintenance', status, components,
+  createdAt: '2026-11-16T00:00:00.000Z', startedAt: '2026-11-16T00:00:00.000Z', resolvedAt: null,
+  window: { startsAt: '2026-11-16T00:00:00.000Z', endsAt: '2026-11-16T04:00:00.000Z' }, updates: [],
+});
+
+test('maintenance on Run8 covers its routes, and down during it reads as maintenance', () => {
+  const body = buildStatus(config(), monitors({ srv: 'down' }), [maintenance(['frc-run8'])],
+    { routeStates: [period('run8-se', 'down'), period('run8-ags', 'paused')] });
+  const run8 = run8Of(body);
+  assert.equal(run8.status, 'maintenance');
+  assert.deepEqual(run8.components.map((r) => r.status), ['maintenance', 'maintenance']);
+  assert.equal(body.overall, 'maintenance');
+});
+
+test('an outage incident during maintenance still shows; upcoming maintenance changes nothing', () => {
+  const outage = { ...maintenance(['run8-se']), id: 10, impact: 'major_outage', status: 'investigating', window: null };
+  const during = buildStatus(config(), monitors({ srv: 'up' }), [maintenance(['frc-run8']), outage]);
+  assert.equal(run8Of(during).components[0].status, 'major_outage');
+
+  const upcoming = buildStatus(config(), monitors({ srv: 'down' }), [maintenance(['frc-run8'], 'scheduled')]);
+  assert.equal(run8Of(upcoming).status, 'major_outage');
+  assert.deepEqual(upcoming.incidents.active.map((i) => i.status), ['scheduled']); // listed, but not raising status
+});

@@ -37,8 +37,14 @@ test('summary: open incidents with impact, status, link and latest update time, 
     incidents: {
       active: [{
         id: 7, title: 'SE route down', impact: 'partial_outage', status: 'identified', components: ['run8-se'],
-        createdAt: '2026-11-17T10:00:00Z', resolvedAt: null,
+        createdAt: '2026-11-17T10:00:00Z', startedAt: '2026-11-17T10:00:00Z', resolvedAt: null,
         updates: [update('2026-11-17T10:30:00Z', 'Found it'), update('2026-11-17T10:00:00Z', 'Looking')],
+      }, {
+        // Scheduled maintenance posted on the 15th for a window starting the 22nd.
+        id: 8, title: 'Run8 updates', impact: 'maintenance', status: 'scheduled', components: ['frc-run8'],
+        createdAt: '2026-11-15T12:00:00Z', startedAt: '2026-11-22T08:00:00Z', resolvedAt: null,
+        window: { startsAt: '2026-11-22T08:00:00Z', endsAt: '2026-11-22T10:00:00Z' },
+        updates: [update('2026-11-15T12:00:00Z', 'Patching')],
       }],
       recent: [{ id: 6, title: 'Old', resolvedAt: '2026-11-16T00:00:00Z', updates: [] }],
     },
@@ -47,5 +53,9 @@ test('summary: open incidents with impact, status, link and latest update time, 
     id: 7, title: 'SE route down', impact: 'partial_outage', status: 'identified',
     url: 'https://status.example.com/incidents/7',
     startedAt: '2026-11-17T10:00:00Z', updatedAt: '2026-11-17T10:30:00Z',
+  }, {
+    id: 8, title: 'Run8 updates', impact: 'maintenance', status: 'scheduled',
+    url: 'https://status.example.com/incidents/8',
+    startedAt: '2026-11-22T08:00:00Z', updatedAt: '2026-11-15T12:00:00Z', // the window's start, not when it was posted
   }]);
 });

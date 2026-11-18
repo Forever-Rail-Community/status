@@ -6,6 +6,8 @@ import pg from 'pg';
 import { migrate } from '../lib/db.js';
 import {
   NotFoundError,
+  ValidationError,
+  parseNewIncident,
   addIncidentUpdate,
   createIncident,
   deleteIncident,
@@ -118,4 +120,41 @@ test('getIncident returns one incident with updates; missing id is NotFoundError
   assert.deepEqual(incident.updates.map((u) => u.status), ['identified', 'investigating']);
   assert.equal('author' in incident.updates[0], false);
   await assert.rejects(getIncident(db, 999999), NotFoundError);
+});
+
+test('maintenance windows: scheduled → in progress → resolved at the end, by the clock', { skip }, async () => {
+  const hour = 3_600_000;
+  const startsAt = new Date(Date.now() + 24 * hour);
+  const endsAt = new Date(startsAt.getTime() + 2 * hour);
+  const id = await createIncident(db, parseNewIncident(
+    { title: 'Run8 updates', message: 'Patching', components: [], startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() },
+    new Set(),
+  ), 'Dalton');
+  const at = async (ms) => (await listIncidents(db, { days: 30, now: ms })).find((i) => i.id === id);
+
+  const before = await at(Date.now());
+  assert.equal(before.status, 'scheduled');
+  assert.equal(before.impact, 'maintenance');
+  assert.equal(before.startedAt, startsAt.toISOString());
+  assert.deepEqual(before.window, { startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString() });
+
+  assert.equal((await at(startsAt.getTime() + hour)).status, 'in_progress');
+  const after = await at(endsAt.getTime() + hour);
+  assert.equal(after.status, 'resolved');
+  assert.equal(after.resolvedAt, endsAt.toISOString());
+  assert.equal(await at(endsAt.getTime() + 31 * 24 * hour), undefined); // past the history window
+
+  // Moving the window; ending early with a resolved update.
+  const later = new Date(startsAt.getTime() + hour);
+  await editIncident(db, id, { window: { startsAt: later.toISOString(), endsAt: endsAt.toISOString() } });
+  assert.equal((await at(Date.now())).window.startsAt, later.toISOString());
+  await addIncidentUpdate(db, id, { status: 'resolved', message: 'Cancelled' }, 'Dalton');
+  assert.equal((await at(Date.now())).status, 'resolved');
+});
+
+test('only scheduled maintenance has a window to move', { skip }, async () => {
+  const id = await createIncident(db, base, 'Dalton');
+  const window = { startsAt: new Date().toISOString(), endsAt: new Date(Date.now() + 3_600_000).toISOString() };
+  await assert.rejects(editIncident(db, id, { window }), ValidationError);
+  await assert.rejects(editIncident(db, 999_999, { window }), NotFoundError);
 });

@@ -8,7 +8,7 @@ const HOUR = 3_600_000;
 const windowStart = Date.parse('2026-11-01T00:00:00Z');
 const now = windowStart + 48 * HOUR;
 const at = (hours) => new Date(windowStart + hours * HOUR).toISOString();
-const incident = (impact, fromHour, toHour) => ({ impact, createdAt: at(fromHour), resolvedAt: toHour === null ? null : at(toHour) });
+const incident = (impact, fromHour, toHour) => ({ impact, startedAt: at(fromHour), resolvedAt: toHour === null ? null : at(toHour) });
 const uptime = (incidents) => manualUptime(incidents, '2026-11-01', 'UTC', { now });
 
 test('no incidents is 100%', () => {
@@ -37,7 +37,7 @@ test('time before the window is ignored; an open incident counts until now', () 
 test('the window starts at midnight in the page time zone', () => {
   // Chicago's Nov 1 starts at 05:00 UTC, so an outage before then falls outside the window.
   const chicagoNow = Date.parse('2026-11-02T05:00:00Z'); // 25 hours later (clocks went back)
-  const early = { impact: 'major_outage', createdAt: '2026-11-01T00:00:00Z', resolvedAt: '2026-11-01T05:00:00Z' };
+  const early = { impact: 'major_outage', startedAt: '2026-11-01T00:00:00Z', resolvedAt: '2026-11-01T05:00:00Z' };
   assert.equal(manualUptime([early], '2026-11-01', 'America/Chicago', { now: chicagoNow }), 100);
   assert.equal(manualUptime([early], '2026-11-01', 'UTC', { now: chicagoNow }) < 100, true);
 });
@@ -50,7 +50,7 @@ test('lastDates counts back from today in the page time zone', () => {
 
 test('an incident colours the day it happened in the page time zone', () => {
   // 02:00 UTC on Nov 16 is the evening of Nov 15 in Chicago.
-  const outage = { title: 'Down', impact: 'major_outage', createdAt: '2026-11-16T02:00:00Z', resolvedAt: '2026-11-16T03:00:00Z' };
+  const outage = { title: 'Down', impact: 'major_outage', startedAt: '2026-11-16T02:00:00Z', resolvedAt: '2026-11-16T03:00:00Z' };
   const slots = (timeZone) => componentSlots({
     days: null, incidents: [outage], axis: ['2026-11-15', '2026-11-16'], baseLevel: 'operational', timeZone,
     now: Date.parse('2026-11-16T12:00:00Z'),
@@ -101,7 +101,7 @@ test('route uptime: Down time counts as down, Paused time is left out', () => {
   const paused12 = [...down6, { state: 'paused', startedAt: at(12), endedAt: null }];
   assert.equal(manualUptime([], '2026-11-01', 'UTC', { periods: paused12, now }), 50);
   // An outage incident during the pause isn't counted twice or against paused time.
-  const incident = { impact: 'major_outage', createdAt: at(13), resolvedAt: at(14) };
+  const incident = { impact: 'major_outage', startedAt: at(13), resolvedAt: at(14) };
   assert.equal(manualUptime([incident], '2026-11-01', 'UTC', { periods: paused12, now }), 50);
   // Paused the whole time: nothing to measure.
   assert.equal(manualUptime([], '2026-11-01', 'UTC', { periods: [{ state: 'paused', startedAt: at(0), endedAt: null }], now }), null);
@@ -118,4 +118,22 @@ test('a parent day is paused when every tracked route was paused and its server 
     [slot('paused'), slot('paused'), slot('paused'), slot('none'), slot('none')],
   ];
   assert.deepEqual(parentSlots(own, routes).map((s) => s.level), ['paused', 'operational', 'major_outage', 'paused', 'operational']);
+});
+
+test('maintenance excuses a route being Down: blue, not red, and not counted against uptime', () => {
+  const window = { title: 'Updates', impact: 'maintenance', startedAt: '2026-11-16T02:00:00Z', resolvedAt: '2026-11-16T06:00:00Z' };
+  const periods = [
+    { state: 'up', startedAt: '2026-11-15T00:00:00Z', endedAt: '2026-11-16T02:00:00Z' },
+    { state: 'down', startedAt: '2026-11-16T02:00:00Z', endedAt: '2026-11-16T06:00:00Z' },
+    { state: 'up', startedAt: '2026-11-16T06:00:00Z', endedAt: null },
+  ];
+  const now = '2026-11-17T00:00:00Z';
+  const slots = componentSlots({ days: null, incidents: [window], periods, axis: ['2026-11-15', '2026-11-16'], baseLevel: 'none', timeZone: 'UTC', now: Date.parse(now) });
+  assert.deepEqual(slots.map((s) => s.level), ['operational', 'maintenance']);
+  assert.equal(manualUptime([window], '2026-11-15', 'UTC', { periods, now: Date.parse(now) }), 100);
+
+  // Down past the end of the window counts: 2 of 48 hours.
+  const overran = periods.map((p) => (p.state === 'down' ? { ...p, endedAt: '2026-11-16T08:00:00Z' } : p.startedAt === '2026-11-16T06:00:00Z' ? { ...p, startedAt: '2026-11-16T08:00:00Z' } : p));
+  assert.equal(componentSlots({ days: null, incidents: [window], periods: overran, axis: ['2026-11-16'], baseLevel: 'none', timeZone: 'UTC', now: Date.parse(now) })[0].level, 'major_outage');
+  assert.equal(Math.round(manualUptime([window], '2026-11-15', 'UTC', { periods: overran, now: Date.parse(now) }) * 100) / 100, 95.83);
 });

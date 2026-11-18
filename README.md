@@ -40,9 +40,10 @@ Postgres database, because Vercel functions can't save files.
    `npm run monitors` prints monitor IDs to put in `status.config.js`.
 4. **Environment variables.** Set everything from `.env.example` in Vercel.
 5. **Deploy** with the framework preset **Other**. `vercel.json` sets the build
-   (`npm run build`, output `dist/`), which writes your title, link previews and favicon
-   into the pages. A mistake in `status.config.js` now fails the deploy instead of breaking
-   the live page; the build log names the setting.
+   (`npm test && npm run build`, output `dist/`): the tests run first, then the build writes
+   your title, link previews and favicon into the pages. A failing test, a missing file or a
+   mistake in `status.config.js` fails the deploy instead of breaking the live page (Vercel
+   keeps serving the last good deployment); the build log says what's wrong.
 
 Then visit `/admin`, sign in with Discord, and post incidents.
 
@@ -54,17 +55,31 @@ Then visit `/admin`, sign in with Discord, and post incidents.
 - While open, it raises the affected components to its impact, so a manual component can
   show "Major outage" with no monitor behind it. An incident with no components affects
   only the page banner.
-- **Scheduled** is for planned maintenance: it's shown on the page but doesn't change any
-  status until you post an update moving it to *In progress*.
+- **Scheduled maintenance** (the *Schedule maintenance* form in `/admin`) has a start and an
+  end. It shows as upcoming right away, turns to *In progress* at the start and *Completed*
+  at the end on its own: the phase is worked out from the clock whenever the page loads, so
+  nothing has to run on a timer. Cards show the times in each visitor's own time zone with
+  "Starts in…" / "Ends in…".
+  - While it's in progress, the affected components (and their sub-components: maintenance
+    on Run8 covers its routes) show **Under maintenance**, even if their monitor or route
+    state says down. An outage incident posted during the window still shows.
+  - Down time inside the window doesn't count against a route's uptime. For HetrixTools
+    monitors, the daily uptime comes from HetrixTools, which only leaves the window out if
+    the monitor is in maintenance mode there too.
+  - Move or extend a window under *Edit details*; end it early or cancel it by posting a
+    *Resolved* update, or delete it.
 - Posting an update with status **Resolved** closes it. Posting any other status on a
   resolved incident reopens it.
 - While an incident is open, its card **replaces the status banner** (like Railway's): title,
   impact, affected components, the latest update and up to 3 earlier ones, with a link to
   its page. Visitors can collapse it. The banner (and `notice`) return when nothing is open.
-  Scheduled maintenance shows under the banner instead of replacing it.
+  Upcoming maintenance shows under the banner instead of replacing it, soonest first.
 - Resolved incidents are listed on `/history` for `historyDays`, and show in the uptime
   strip tooltips for the days they covered.
 - New incidents reach visitors within about a minute (the status response is cached for 60s).
+- If HetrixTools can't be reached, the page stays up: monitored components show unknown under
+  a "live server monitoring is delayed" note, while incidents, maintenance, routes and manual
+  components show as normal.
 
 ## Pages and navigation
 
@@ -187,6 +202,13 @@ dashes. Set it explicitly if you might rename the component, so past incidents s
   each period. Screen readers announce it; Escape hides the tooltip.
 
 Monitor IDs, targets (URLs/IPs) and admin names never reach the public page.
+
+## Checking metrics data
+
+`npm run check-metrics` (reads `HETRIX_API_KEY` from `.env`, changes nothing) prints, for each
+monitor, whether HetrixTools has response times for it and whether a server monitoring agent
+is sending CPU / RAM / disk stats (via HetrixTools' v1 server stats API). Its output decides
+what the metrics charts can show.
 
 ## Tests
 

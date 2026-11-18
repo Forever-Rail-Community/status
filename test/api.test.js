@@ -67,14 +67,24 @@ test('invalid config is a generic 500, details only in logs', async () => {
   assert.match((await res.json()).error, /configuration/);
 });
 
-test('upstream failure is a generic, uncached 502', async () => {
+test('a HetrixTools outage keeps the page up: monitors unknown, the rest as normal', async () => {
   const { fetchImpl } = fakeHetrix({ fail: { '/uptime-monitors': 500 } });
-  const GET = createHandler((ctx) => loadStatus({ ...ctx, fetchImpl }), { cacheControl: 'c', config: baseConfig(), db: null });
+  const config = baseConfig([{ name: 'G', components: [
+    { id: 'server', name: 'Server', monitor: 'm1' },
+    { id: 'discord', name: 'Discord', status: 'degraded' },
+  ] }]);
+  const GET = createHandler((ctx) => loadStatus({ ...ctx, fetchImpl }), { cacheControl: 'c', config, db: null });
 
   const res = await quietly(GET);
-  assert.equal(res.status, 502);
-  assert.equal(res.headers.get('Cache-Control'), 'no-store');
-  assert.doesNotMatch(await res.text(), /upstream detail/);
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.monitoringDelayed, true);
+  assert.deepEqual(body.groups[0].components.map((c) => c.status), ['unknown', 'degraded']);
+  assert.doesNotMatch(JSON.stringify(body), /upstream detail/);
+});
+
+test('monitoringDelayed is false when HetrixTools answers', () => {
+  assert.equal(buildStatus(resolveConfig(baseConfig()), [], null).monitoringDelayed, false);
 });
 
 // ---------- /api/history ----------

@@ -41,13 +41,14 @@ function touchedDay(startIso, endIso, [dayStart, dayEnd], now) {
 export function componentSlots({ days, incidents, periods = [], axis, baseLevel, timeZone, now = Date.now() }) {
   const uptimeByDate = new Map((days ?? []).map((d) => [d.date, d.uptime]));
   const trackedFrom = routeTrackedFrom(periods);
+  const maintenance = maintenanceSpans(incidents, now);
 
   return axis.map((date) => {
     const bounds = dayBounds(date, timeZone);
     const uptime = uptimeByDate.get(date) ?? null;
-    const touching = incidents.filter((i) => touchedDay(i.createdAt, i.resolvedAt, bounds, now));
+    const touching = incidents.filter((i) => touchedDay(i.startedAt, i.resolvedAt, bounds, now));
     const start = trackedFrom !== null
-      ? routeDayLevel(periods, bounds, trackedFrom, now)
+      ? routeDayLevel(periods, maintenance, bounds, trackedFrom, now)
       : uptime === null ? baseLevel : uptimeLevel(uptime);
     const level = touching.map((i) => i.impact).reduce(worseLevel, start);
     return { date, uptime, level, incidents: touching.map((i) => i.title) };
@@ -59,19 +60,30 @@ export function routeTrackedFrom(periods) {
   return periods.length ? Math.min(...periods.map((p) => Date.parse(p.startedAt))) : null;
 }
 
+/** Maintenance windows among these incidents, as [start, end] ms spans. */
+const maintenanceSpans = (incidents, now) =>
+  incidents.filter((i) => i.impact === 'maintenance').map((i) => span(i.startedAt, i.resolvedAt, now));
+
+/** Down time that isn't excused: outside every span in `excused` (maintenance, pauses). */
+function unexcusedDown(down, excused, from, to) {
+  const merged = mergeSpans(down, from, to);
+  return totalLength(merged) - overlapLength(merged, mergeSpans(excused, from, to));
+}
+
 /**
- * A route's day, over the part of it that was tracked: Down at any point → outage;
- * otherwise Up at any point → operational (a route that ran shows green even if it was
- * also paused); otherwise paused the whole time → paused. Untracked days have no data.
- * Time not covered by a Down or Paused period counts as Up (older data has no Up rows).
+ * A route's day, over the part of it that was tracked: Down at any point (outside a
+ * maintenance window) → outage; otherwise Up at any point → operational (a route that ran
+ * shows green even if it was also paused); otherwise paused the whole time → paused.
+ * Untracked days have no data. Time not covered by a Down or Paused period counts as Up
+ * (older data has no Up rows). The day's maintenance shows on top, via its incident.
  */
-function routeDayLevel(periods, [dayStart, dayEnd], trackedFrom, now) {
+function routeDayLevel(periods, maintenance, [dayStart, dayEnd], trackedFrom, now) {
   const from = Math.max(dayStart, trackedFrom);
   const to = Math.min(dayEnd, now);
   if (to <= from) return 'none';
 
   const spans = (state) => periods.filter((p) => p.state === state).map((p) => span(p.startedAt, p.endedAt, now));
-  if (mergeSpans(spans('down'), from, to).length > 0) return 'major_outage';
+  if (unexcusedDown(spans('down'), maintenance, from, to) > 0) return 'major_outage';
   const notUp = mergeSpans([...spans('down'), ...spans('paused')], from, to);
   return totalLength(notUp) < to - from ? 'operational' : 'paused';
 }
@@ -141,24 +153,20 @@ const span = (startIso, endIso, now) => [Date.parse(startIso), endIso ? Date.par
  * Uptime % for a component with no monitor (manual components and routes), since the start
  * of `fromDate` in `timeZone` (for a route, no earlier than when it started being tracked).
  * Down: outage incidents (partial or major; degraded and maintenance don't count) and, for
- * routes, time set to Down. Paused time is left out entirely. Null when there's no
- * unpaused time to measure.
+ * routes, time set to Down, except inside a maintenance window. Paused time is left out
+ * entirely. Null when there's no unpaused time to measure.
  * @param periods  a route's state periods ({ state, startedAt, endedAt })
  */
 export function manualUptime(incidents, fromDate, timeZone, { periods = [], now = Date.now() } = {}) {
   const windowStart = Math.max(startOfDay(fromDate, timeZone), routeTrackedFrom(periods) ?? -Infinity);
-  const down = mergeSpans([
-    ...incidents.filter((i) => DOWNTIME_IMPACTS.has(i.impact)).map((i) => span(i.createdAt, i.resolvedAt, now)),
-    ...periods.filter((p) => p.state === 'down').map((p) => span(p.startedAt, p.endedAt, now)),
-  ], windowStart, now);
-  const paused = mergeSpans(
-    periods.filter((p) => p.state === 'paused').map((p) => span(p.startedAt, p.endedAt, now)),
-    windowStart, now,
-  );
+  const periodSpans = (state) => periods.filter((p) => p.state === state).map((p) => span(p.startedAt, p.endedAt, now));
+  const outages = incidents.filter((i) => DOWNTIME_IMPACTS.has(i.impact)).map((i) => span(i.startedAt, i.resolvedAt, now));
+  const paused = periodSpans('paused');
 
-  const measured = now - windowStart - totalLength(paused);
+  const measured = now - windowStart - totalLength(mergeSpans(paused, windowStart, now));
   if (measured <= 0) return null;
-  return 100 * (1 - (totalLength(down) - overlapLength(down, paused)) / measured);
+  const down = unexcusedDown([...outages, ...periodSpans('down')], [...paused, ...maintenanceSpans(incidents, now)], windowStart, now);
+  return 100 * (1 - down / measured);
 }
 
 /**
