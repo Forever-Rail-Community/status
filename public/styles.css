@@ -181,6 +181,16 @@ a { color: inherit; }
   font-weight: 500;
 }
 
+.delayed-note {
+  margin: 12px 0 16px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
 .banner-notice {
   padding: 2px 0 2px 12px;
   margin: 14px 16px;
@@ -351,6 +361,7 @@ details[open] > summary .strip-compact { display: none; }
   border: 1px solid var(--border);
   border-top: 0;
   border-radius: 0 0 var(--radius) var(--radius);
+  background: var(--surface);
 }
 
 /* Right padding matches the header row's, so the strip and nested cards end where its text does. */
@@ -522,6 +533,10 @@ details[open] > summary .strip-compact { display: none; }
 }
 
 .incident-open:hover { color: var(--text); border-color: var(--text); }
+
+.incident-window { margin: 0 0 10px; font-size: 0.875rem; color: var(--text); }
+.incident-countdown { color: var(--muted); }
+.incident-page-head + .incident-window { margin-top: -4px; }
 
 .incident-body { display: grid; gap: 14px; padding: 14px 16px 16px; }
 

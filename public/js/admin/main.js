@@ -1,7 +1,7 @@
 import { byId, h } from '../dom.js';
 import { applyTheme, renderThemeSwitcher } from '../theme.js';
 import { ApiError, api } from './api.js';
-import { incidentLists, messageView, newIncidentForm, routesSection, signInView } from './views.js';
+import { incidentLists, messageView, newIncidentForm, newMaintenanceForm, routesSection, signInView } from './views.js';
 
 const root = byId('admin');
 const actionsBar = byId('admin-actions');
@@ -41,6 +41,9 @@ async function refreshRoutes() {
   if (meta.routes.length > 0) renderRoutes(await api.routeStates());
 }
 
+// New incidents and scheduled maintenance go through the same endpoint.
+const createIncident = (values) => api.createIncident(values).then(reportDiscord).then(refreshIncidents);
+
 // Every change re-fetches the list, so what's shown is always what's stored.
 const incidentActions = {
   update: (id, values) => api.postUpdate(id, values).then(reportDiscord).then(refreshIncidents),
@@ -58,7 +61,8 @@ function renderSignedIn(user) {
 
   root.replaceChildren(
     notice,
-    newIncidentForm(meta, (values) => api.createIncident(values).then(reportDiscord).then(refreshIncidents)),
+    newIncidentForm(meta, createIncident),
+    newMaintenanceForm(meta, createIncident),
     routesContainer,
     listContainer,
   );

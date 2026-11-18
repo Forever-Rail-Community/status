@@ -8,6 +8,8 @@ import {
   INCIDENT_STATUS_LABELS,
   formatDateTime,
   formatDuration,
+  formatWindow,
+  windowCountdown,
 } from './format.js';
 
 export const incidentUrl = (id) => `/incidents/${id}`;
@@ -22,7 +24,21 @@ function affectedNames(incident, componentNames) {
 const incidentState = (incident) => (incident.status === 'scheduled' ? 'maintenance' : incident.impact);
 
 const lastedFor = (incident) =>
-  formatDuration(Date.parse(incident.resolvedAt) - Date.parse(incident.createdAt));
+  formatDuration(Date.parse(incident.resolvedAt) - Date.parse(incident.startedAt));
+
+/** Finished maintenance reads "Completed" rather than "Resolved". */
+const statusLabel = (incident) =>
+  incident.window && incident.status === 'resolved' ? 'Completed' : INCIDENT_STATUS_LABELS[incident.status];
+
+/** 'Sat, Nov 22, 2:00 – 4:00 AM CST · Starts in 4d 7h' for scheduled maintenance. */
+const windowLine = (incident) => {
+  if (!incident.window) return null;
+  const countdown = incident.resolvedAt ? null : windowCountdown(incident.window);
+  return h('p', { class: 'incident-window' },
+    formatWindow(incident.window),
+    countdown && h('span', { class: 'incident-countdown' }, ` · ${countdown}`),
+  );
+};
 
 /**
  * Colour of one update in the timeline: green once resolved, blue for maintenance steps,
@@ -78,6 +94,7 @@ function activeCard(incident, componentNames, expanded) {
       h('a', { class: 'incident-open', href, title: 'Open incident page', 'aria-label': `Open incident page: ${incident.title}` }, '↗'),
     ),
     h('div', { class: 'incident-body' },
+      windowLine(incident),
       affected.length > 0 && chips(affected),
       latest && updateList([latest], incident.impact, { markLatest: true }),
       earlier.length > 0 && h('p', { class: 'updates-divider' }, 'Earlier updates'),
@@ -153,12 +170,13 @@ export function renderIncidentPage(incident, componentNames) {
       h('div', { class: 'badges' },
         h('span', { class: 'badge', dataset: { state: incidentState(incident) } }, IMPACT_LABELS[incident.impact]),
         h('span', { class: 'badge', dataset: { state: resolved ? 'operational' : incidentState(incident) } },
-          INCIDENT_STATUS_LABELS[incident.status]),
+          statusLabel(incident)),
       ),
     ),
+    windowLine(incident),
     h('dl', { class: 'incident-facts' },
-      fact('Started', formatDateTime(incident.createdAt)),
-      resolved && fact('Resolved', formatDateTime(incident.resolvedAt)),
+      fact(Date.parse(incident.startedAt) > Date.now() ? 'Starts' : 'Started', formatDateTime(incident.startedAt)),
+      resolved && fact(incident.window ? 'Completed' : 'Resolved', formatDateTime(incident.resolvedAt)),
       resolved && fact('Lasted', lastedFor(incident)),
       fact('Affects', affected ?? 'All services'),
     ),

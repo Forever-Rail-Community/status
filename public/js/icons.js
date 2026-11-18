@@ -32,11 +32,12 @@ const ICON_FOR_STATE = {
   loading: 'loader-circle',
 };
 
-// Routes (pausable components) read as running / unplugged / paused instead.
+// Routes read as running / unplugged / paused instead (and a wrench during maintenance).
 const ROUTE_ICON_FOR_STATE = {
   partial_outage: 'unplug',
   major_outage: 'unplug',
   paused: 'circle-pause',
+  maintenance: 'wrench',
   unknown: 'circle-help',
 };
 
@@ -45,7 +46,7 @@ const SVG_NS = 'http://www.w3.org/2000/svg';
 /** Decorative status icon; colour comes from the surrounding text (currentColor). */
 export const statusIcon = (state) => icon(ICON_FOR_STATE[state] ?? ICON_FOR_STATE.unknown);
 
-/** Route icon: play when it's up (incl. degraded/maintenance), unplug when down, pause when paused. */
+/** Route icon: play when it's up (incl. degraded), unplug when down, pause when paused, wrench in maintenance. */
 export const routeIcon = (state) => icon(ROUTE_ICON_FOR_STATE[state] ?? 'circle-play');
 
 function icon(name) {

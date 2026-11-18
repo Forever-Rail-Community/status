@@ -19,6 +19,7 @@ const els = {
   bannerTitle: byId('banner-title'),
   bannerState: byId('banner-state'),
   bannerNotice: byId('banner-notice'),
+  monitoringDelayed: byId('monitoring-delayed'),
   activeIncidents: byId('active-incidents'),
   updated: byId('updated'),
   explainerTz: byId('explainer-tz'),
@@ -92,6 +93,8 @@ function renderStatus() {
   els.banner.hidden = open.some(takesOverBanner);
   setBannerState(status.overall, OVERALL_LABELS[status.overall]);
   els.bannerState.textContent = STATUS_LABELS[status.overall];
+  // HetrixTools unreachable: monitored components show unknown and don't count toward the banner.
+  els.monitoringDelayed.hidden = !status.monitoringDelayed;
   els.activeIncidents.replaceChildren(
     ...renderActiveIncidents(open, componentNameMap(status.groups), expanded),
   );

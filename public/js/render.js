@@ -73,8 +73,13 @@ const collapsible = (className, key, ctx, summary, body) =>
  * A component with sub-components (Run8 → routes) combines its own monitor with them,
  * the same way a group combines its components.
  */
-function measure(component, ctx) {
-  const incidents = ctx.incidents.filter((i) => i.components.includes(component.id));
+/**
+ * @param inherited  maintenance on a parent, which covers its sub-components too
+ */
+function measure(component, ctx, inherited = []) {
+  const own = ctx.incidents.filter((i) => i.components.includes(component.id));
+  // A window listing both Run8 and one of its routes is counted once.
+  const incidents = [...own, ...inherited.filter((i) => !own.includes(i))];
   const periods = ctx.routePeriods.get(component.id) ?? [];
   const monitored = component.source === 'hetrix';
   const days = ctx.history?.components[component.id];
@@ -95,7 +100,8 @@ function measure(component, ctx) {
   else if (component.route && periods.length === 0) ownUptime = null;
   else ownUptime = manualUptime(incidents, trimToMonitored(ownSlots)[0].date, ctx.timeZone, { periods });
 
-  const children = component.components.map((c) => measure(c, ctx));
+  const maintenance = incidents.filter((i) => i.impact === 'maintenance');
+  const children = component.components.map((c) => measure(c, ctx, maintenance));
   const allSlots = children.length ? parentSlots(ownSlots, children.map((c) => c.allSlots)) : ownSlots;
   const uptime = children.length ? average([ownUptime, ...children.map((c) => c.uptime)]) : ownUptime;
   return { component, allSlots, slots: trimToMonitored(allSlots), uptime, children };

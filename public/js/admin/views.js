@@ -9,6 +9,7 @@ import {
   INCIDENT_STATUS_LABELS,
   formatAgo,
   formatDateTime,
+  formatWindow,
 } from '../format.js';
 import {
   announceCheckbox,
@@ -19,6 +20,7 @@ import {
   statusSelect,
   templatePicker,
   titleInput,
+  windowInputs,
 } from './fields.js';
 
 function asyncForm(className, children, submitLabel, onSubmit) {
@@ -132,7 +134,33 @@ export function newIncidentForm(meta, onSubmit) {
   );
 }
 
+/** Schedule maintenance: a window, what it affects and what's happening. */
+export function newMaintenanceForm(meta, onSubmit) {
+  return h('details', { class: 'card card-collapsible' },
+    h('summary', {}, h('h2', {}, 'Schedule maintenance')),
+    h('p', { class: 'muted small' },
+      'Shows as upcoming right away, turns to in progress at the start and completes at the end on its own. Downtime during the window doesn\'t count as an outage.'),
+    asyncForm('incident-form', [
+      titleInput('', 'e.g. Run8 server updates'),
+      windowInputs(),
+      componentPicker(meta.groups),
+      messageInput('What will be done, and what will players notice?'),
+      announceCheckbox(meta.discord),
+    ], 'Schedule', async (values, form) => {
+      await onSubmit(values);
+      form.reset();
+    }),
+  );
+}
+
 const badge = (state, text) => h('span', { class: 'badge', dataset: { state } }, text);
+
+/** Finished maintenance reads "Completed"; upcoming maintenance is blue. */
+const statusBadge = (incident) =>
+  badge(
+    incident.resolvedAt ? 'operational' : incident.status === 'scheduled' ? 'maintenance' : incident.impact,
+    incident.window && incident.resolvedAt ? 'Completed' : INCIDENT_STATUS_LABELS[incident.status],
+  );
 
 function timeline(updates) {
   return h('ol', { class: 'timeline-list' },
@@ -183,7 +211,8 @@ function incidentCard(incident, meta, actions) {
     h('summary', {}, 'Edit details'),
     asyncForm('incident-form', [
       titleInput(incident.title),
-      impactSelect(meta.impacts, incident.impact),
+      // Maintenance keeps its impact; its window can be moved or extended instead.
+      incident.window ? windowInputs(incident.window) : impactSelect(meta.impacts, incident.impact),
       componentPicker(meta.groups, incident.components),
     ], 'Save changes', (values) => actions.edit(incident.id, values)),
   );
@@ -193,13 +222,15 @@ function incidentCard(incident, meta, actions) {
       h('div', {},
         h('h3', {}, incident.title),
         h('p', { class: 'muted' },
-          `#${incident.id} · opened ${formatDateTime(incident.createdAt)}`,
-          incident.resolvedAt && ` · resolved ${formatDateTime(incident.resolvedAt)}`,
+          incident.window
+            ? `#${incident.id} · ${formatWindow(incident.window)}`
+            : `#${incident.id} · opened ${formatDateTime(incident.createdAt)}`,
+          incident.resolvedAt && ` · ${incident.window ? 'completed' : 'resolved'} ${formatDateTime(incident.resolvedAt)}`,
         ),
       ),
       h('div', { class: 'badges' },
         badge(incident.impact, IMPACT_LABELS[incident.impact]),
-        badge(incident.resolvedAt ? 'operational' : incident.impact, INCIDENT_STATUS_LABELS[incident.status]),
+        statusBadge(incident),
       ),
     ),
     h('p', { class: 'muted small' },
@@ -217,7 +248,10 @@ function incidentCard(incident, meta, actions) {
 }
 
 export function incidentLists(incidents, meta, actions) {
-  const open = incidents.filter((i) => !i.resolvedAt);
+  const unresolved = incidents.filter((i) => !i.resolvedAt);
+  const open = unresolved.filter((i) => i.status !== 'scheduled');
+  const upcoming = unresolved.filter((i) => i.status === 'scheduled')
+    .sort((a, b) => a.startedAt.localeCompare(b.startedAt));
   const resolved = incidents.filter((i) => i.resolvedAt);
   const section = (title, items, empty) =>
     h('section', { class: 'admin-section' },
@@ -227,6 +261,7 @@ export function incidentLists(incidents, meta, actions) {
 
   return [
     section('Open incidents', open, 'Nothing open. All clear.'),
+    upcoming.length > 0 && section('Upcoming maintenance', upcoming, ''),
     section('Resolved (last 90 days)', resolved, 'No resolved incidents yet.'),
   ];
 }

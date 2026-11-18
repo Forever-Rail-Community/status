@@ -220,3 +220,17 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, .btn:focus-vi
 .subsection { flex: 1; }
 .subsection > summary { cursor: pointer; color: var(--muted); font-size: 0.8125rem; font-weight: 500; }
 .subsection[open] > summary { margin-bottom: 12px; }
+
+/* A card that opens to a form (Schedule maintenance). */
+.card-collapsible > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  list-style: none;
+}
+.card-collapsible > summary::-webkit-details-marker { display: none; }
+.card-collapsible > summary h2 { margin: 0; }
+.card-collapsible > summary::after { content: '+'; color: var(--muted); font-size: 1.25rem; }
+.card-collapsible[open] > summary::after { content: '−'; }
+.card-collapsible[open] > summary { margin-bottom: 8px; }

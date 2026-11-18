@@ -24,8 +24,27 @@ const valid = {
 // ---------- validation ----------
 
 test('parseNewIncident trims, dedupes components and defaults to none', () => {
-  assert.deepEqual(parseNewIncident(valid, known), { ...valid, title: 'Site down', components: ['site'] });
+  assert.deepEqual(parseNewIncident(valid, known), { ...valid, title: 'Site down', components: ['site'], window: null });
   assert.deepEqual(parseNewIncident({ ...valid, components: undefined }, known).components, []);
+});
+
+test('scheduled maintenance: impact and status come from the window', () => {
+  const now = Date.parse('2026-11-17T12:00:00Z');
+  const base = { title: 'Updates', message: 'Patching', components: ['site'] };
+  const future = parseNewIncident({ ...base, startsAt: '2026-11-22T08:00:00Z', endsAt: '2026-11-22T10:00:00Z', impact: 'major_outage' }, known, now);
+  assert.equal(future.impact, 'maintenance');
+  assert.equal(future.status, 'scheduled');
+  assert.deepEqual(future.window, { startsAt: '2026-11-22T08:00:00.000Z', endsAt: '2026-11-22T10:00:00.000Z' });
+  const started = parseNewIncident({ ...base, startsAt: '2026-11-17T11:00:00Z', endsAt: '2026-11-17T13:00:00Z' }, known, now);
+  assert.equal(started.status, 'in_progress');
+
+  const rejects = (input, pattern) =>
+    assert.throws(() => parseNewIncident({ ...base, ...input }, known, now), (e) => e instanceof ValidationError && pattern.test(e.message));
+  rejects({ startsAt: 'soon', endsAt: '2026-11-22T10:00:00Z' }, /start must be a date/);
+  rejects({ startsAt: '2026-11-22T08:00:00Z' }, /end must be a date/);
+  rejects({ startsAt: '2026-11-22T10:00:00Z', endsAt: '2026-11-22T08:00:00Z' }, /end must be after the start/);
+  rejects({ startsAt: '2026-11-17T08:00:00Z', endsAt: '2026-11-17T10:00:00Z' }, /already ended/);
+  rejects({ startsAt: '2026-11-20T00:00:00Z', endsAt: '2026-12-20T00:00:00Z' }, /at most 14 days/);
 });
 
 test('parseNewIncident rejects bad input with a clear message', () => {
