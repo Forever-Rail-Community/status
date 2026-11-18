@@ -74,8 +74,10 @@ Then visit `/admin`, sign in with Discord, and post incidents.
   incidents on `/` and from `/history`. Needs `vercel.json` (it maps these URLs to one page).
 - Top right of the header: **History** (shown when incidents are set up), your
   `header.button`, and **Log in** → `/admin` (shown when admin sign-in is set up).
-- `/api/summary`: overall status and every component (routes nested), readable from any
-  site. Meant for the operations dashboard's status widget. Cached for 60 seconds.
+- `/api/summary`: overall status, every component (routes nested), and open incidents
+  (title, impact, status and a link to the incident's page; `null` when incidents aren't set
+  up), readable from any site. Meant for status widgets on the operations dashboard and the
+  help center. Cached for 60 seconds.
 - `/feed.xml`: RSS feed with one item per incident update (latest 50). Linked in the footer
   when incidents are set up. Works with Discord RSS bots and feed readers.
 - Any other address shows a 404 page with the normal header and footer.
